@@ -24,6 +24,7 @@
 ```
 楹联丛话全编.txt                  源文件（只读，未改动）
 SPEC_楹联语义标注.md              本规范
+BOOK_楹联语义标注方法论.md        配套方法论（20 章 · 六编）
 scripts/
   yinglian_dict.py                人名词典、地名词典、官职/名物/神祇等词表
   yinglian_lib.py                 解析、实体识别、联语识别、标注渲染
@@ -172,7 +173,7 @@ python3 scripts/render_yinglian.py
 
 ### 5.3 联语语料 `data/couplets.json`
 
-共 **3,021** 副。字段：
+共 **3,020** 副。字段：
 
 ```json
 {
@@ -185,6 +186,9 @@ python3 scripts/render_yinglian.py
   "type": "春联",
   "upper": "新年纳余庆",
   "lower": "嘉节号长春",
+  "upper_len": 6,
+  "lower_len": 6,
+  "balanced": true,
   "text": "新年纳余庆；嘉节号长春",
   "author": "孟昶",
   "author_near": "孟昶",
@@ -197,12 +201,18 @@ python3 scripts/render_yinglian.py
 
 | 字段 | 含义 | 可靠性 |
 |---|---|---|
-| `upper` / `lower` | 以原文第一个 `；` 切分的上下联 | 高（原文切分） |
+| `upper` / `lower` | 以原文第一个 `；` 切分的上下联，并剥离末尾句读 | 高（原文切分） |
+| `upper_len` / `lower_len` / `balanced` | 字数与等长判定 | 高（计算） |
+| `book` / `volume` / `section` / `entry` / `ref` | 结构树定位 | 高 |
 | `type` | 挽联/寿联/贺联/春联/门联/堂联/庙联/会馆联/集句/巧对/联语 | 中（关键词启发式） |
 | `author` | `撰/题/书联/作联/集句` 前的人名 | 高精度、低召回（91 副） |
 | `author_near` | 联语前最近的人名 | 仅作线索，不保证是作者 |
 | `place` | 联语前最近的地名 | 仅作线索，不保证悬挂地 |
 | `context` | 联语前 100 字 | 原文，供人工复核 |
+
+> **注意末尾句读的剥离**：原文引号内写作 `"上联；下联。"`，
+> 句号属于引文而非下联。若不剥离，下联字数会凭空多一字，
+> 破坏"上下联等字数"的基本形制（实测等长率会从 93.7% 跌到 1.4%）。
 
 类型分布：
 

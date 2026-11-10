@@ -648,6 +648,21 @@ COUPLET_BAD_PREFIX = (
 )
 
 
+def _strip_line_ending(line: str) -> str:
+    """去掉联句末尾的句读（下联常有句号）。"""
+    return line.rstrip("。！？!?，、；; ")
+
+
+def _split_couplet(quote: str) -> tuple[str, str]:
+    """按第一个全角分号切分上下联，并剥离末尾句读。
+
+    原文引号内常写作“上联；下联。”，句号属于引文而非联句本身，
+    若不剥离，下联字数会凭空多一字，破坏“上下联等字数”的基本形制。
+    """
+    upper, lower = quote.split("；", 1)
+    return _strip_line_ending(upper.strip()), _strip_line_ending(lower.strip())
+
+
 def _is_couplet_quote(quote: str) -> bool:
     """判断引号内文字是否像一副联语。"""
     if "；" not in quote:
@@ -660,8 +675,7 @@ def _is_couplet_quote(quote: str) -> bool:
         return False
     if quote.count("，") > 12:
         return False
-    upper, lower = quote.split("；", 1)
-    upper, lower = upper.strip(), lower.strip()
+    upper, lower = _split_couplet(quote)
     if len(upper) < 2 or len(lower) < 2:
         return False
     ratio = len(upper) / max(1, len(lower))
@@ -679,14 +693,14 @@ def find_couplets(text: str) -> list[dict[str, object]]:
         quote = m.group(1)
         if not _is_couplet_quote(quote):
             continue
-        upper, lower = quote.split("；", 1)
+        upper, lower = _split_couplet(quote)
         result.append(
             {
                 "start": m.start(),
                 "end": m.end(),
                 "quote": quote,
-                "upper": upper.strip(),
-                "lower": lower.strip(),
+                "upper": upper,
+                "lower": lower,
             }
         )
     return result

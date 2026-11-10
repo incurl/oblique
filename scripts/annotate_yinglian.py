@@ -287,6 +287,8 @@ def build_entities_index(entities: list[dict]) -> dict:
 def build_couplets_index(couplets: list[dict]) -> dict:
     items = []
     for i, c in enumerate(couplets, 1):
+        upper = c.get("upper", "")
+        lower = c.get("lower", "")
         items.append(
             {
                 "id": f"C{i:04d}",
@@ -296,8 +298,11 @@ def build_couplets_index(couplets: list[dict]) -> dict:
                 "entry": c.get("entry", ""),
                 "ref": c.get("ref", ""),
                 "type": c.get("type", "联语"),
-                "upper": c.get("upper", ""),
-                "lower": c.get("lower", ""),
+                "upper": upper,
+                "lower": lower,
+                "upper_len": len(upper),
+                "lower_len": len(lower),
+                "balanced": len(upper) == len(lower),
                 "text": c.get("quote", ""),
                 "author": c.get("author"),
                 "author_near": c.get("author_near"),
@@ -305,10 +310,14 @@ def build_couplets_index(couplets: list[dict]) -> dict:
                 "context": c.get("context", ""),
             }
         )
+
+    balanced = sum(1 for i in items if i["balanced"])
     return {
         "schema": "yinglian-couplets-v1",
         "total": len(items),
         "counts_by_type": dict(Counter(i["type"] for i in items)),
+        "balanced": balanced,
+        "balanced_ratio": round(balanced / len(items), 4) if items else 0.0,
         "items": items,
     }
 

@@ -24,9 +24,12 @@ python3 scripts/render_yinglian.py     # 生成 docs/index.html 预览
 |---|---|
 | `data/楹联丛话全编.tagged.md` | 标注正文（1.2 MB，7,967 行） |
 | `data/entities.json` | 13,135 处实体标注 / 2,979 个规范名 |
-| `data/couplets.json` | 3,021 副联语（上下联、类型、作者线索、出处） |
+| `data/couplets.json` | 3,020 副联语（上下联、类型、作者线索、出处） |
 | `data/structure.json` | 9 部书 / 卷 / 门类 / 条目结构 |
 | `docs/index.html` | 静态 HTML 预览（实体按类型着色） |
+| `SPEC_楹联语义标注.md` | 标注规范：符号体系、字段定义、校验方法、已知限制 |
+| `BOOK_楹联语义标注方法论.md` | **配套方法论**：20 章六编，讲清"为什么这么做"与"哪些做法被证伪" |
+
 
 当前统计：
 
@@ -34,7 +37,7 @@ python3 scripts/render_yinglian.py     # 生成 docs/index.html 预览
 源文件          2,588 行 / 332,547 字
 正文段落        2,289 段
 实体标注        13,135 处
-联语            3,021 副
+联语            3,020 副
 结构块          96 个
 ```
 
@@ -52,7 +55,8 @@ python3 scripts/render_yinglian.py     # 生成 docs/index.html 预览
 
 ## 规范与限制
 
-完整规范见 [`SPEC_楹联语义标注.md`](SPEC_楹联语义标注.md)。
+完整规范见 [`SPEC_楹联语义标注.md`](SPEC_楹联语义标注.md)；
+方法论与设计理由见 [`BOOK_楹联语义标注方法论.md`](BOOK_楹联语义标注方法论.md)。
 
 要点：
 
