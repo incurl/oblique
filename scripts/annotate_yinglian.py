@@ -290,6 +290,7 @@ def build_couplets_index(couplets: list[dict]) -> dict:
         upper = c.get("upper", "")
         lower = c.get("lower", "")
         source = c.get("lower_source", "")
+        marks = c.get("editorial_markers", [])
         items.append(
             {
                 "id": f"C{i:04d}",
@@ -302,6 +303,7 @@ def build_couplets_index(couplets: list[dict]) -> dict:
                 "upper": upper,
                 "lower": lower,
                 "lower_source": source,
+                "editorial_markers": marks,
                 "upper_len": len(upper),
                 "lower_len": len(lower),
                 "text": c.get("quote", ""),

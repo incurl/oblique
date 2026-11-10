@@ -661,6 +661,33 @@ def _strip_line_ending(line: str) -> str:
     return line.rstrip("。！？!?，、；; ")
 
 
+# 编者／校者的行内标记，不是联句本身，计数时必须剔除：
+#   见上   —— “见上联”，指前一条已引的上联
+#   一作   —— “本作”，异文标记，后接另一版本
+#   又作   —— 同上
+#
+# ⚠️ 「一曰」不在此列：它是联句正文的一部分
+#   （如「受天地之中，以生一曰水」以五行名目成句），
+#   误剔会破坏正文。
+EDITORIAL_MARKERS = ("见上", "一作", "又作")
+
+
+def _strip_editorial_markers(line: str) -> tuple[str, list[str]]:
+    """剥离行内的编者标记，返回（剥离后的联句, 被剥离的标记列表）。
+
+    例：
+        「看儿曹整顿一作旋转乾坤」→「看儿曹整顿旋转乾坤」，标记「一作」
+        「含和履仁见上，永享年寿」→「含和履仁，永享年寿」，标记「见上」
+    """
+    removed: list[str] = []
+    out = line
+    for marker in EDITORIAL_MARKERS:
+        if marker in out:
+            removed.append(marker)
+            out = out.replace(marker, "")
+    return out, removed
+
+
 def _split_couplet(quote: str) -> tuple[str, str]:
     """按第一个全角分号切分上下联，并剥离末尾句读。
 
@@ -671,9 +698,11 @@ def _split_couplet(quote: str) -> tuple[str, str]:
     return _strip_line_ending(upper.strip()), _strip_line_ending(lower.strip())
 
 
-# 集句对：下联前置“出处冠名”（如“王勃桃溪柳陌好经过”）
-# 判定不依赖词典，靠形制自证：剥离首 k 字后若上下联等长，则该 k 字为冠名。
-MAX_SOURCE_PREFIX = 4
+# 集句对：出处冠名（如“王勃桃溪柳陌好经过”）
+# 判定不依赖词典，靠形制自证：剥离 k 字后若上下联等长，则该 k 字为冠名。
+# 八字联的字数为 8，出处冠名可能长达 9 字（“唐刘待价令狐仁政碑”），
+# 故上限取 10。
+MAX_SOURCE_PREFIX = 10
 
 # 出处冠名的三类形态：
 #   1) 诗人名        —— 杜甫、王勃、刘长卿
@@ -740,17 +769,17 @@ def _looks_like_source(prefix: str) -> bool:
 
 def _detect_source_prefix(
     upper: str, lower: str
-) -> tuple[str, str]:
-    """识别并剥离下联的出处冠名（前置或后置）。
+) -> tuple[str, str, str]:
+    """识别并剥离出处冠名。
 
-    集句联的常见形制是把出处与联句并置，有两种位置：
+    集句联的常见形制是把出处与联句并置，出处有四种位置：
 
-    **前置**（出处在下联开头）：
+    **下联前置**：
 
         上：紫阁丹楼纷照耀
         下：王勃桃溪柳陌好经过        → 出处「王勃」
 
-    **后置**（出处在下联结尾，多为二人连缀）：
+    **下联后置**（多为二人连缀）：
 
         上：举杯邀明月
         下：太白、右丞                  → 出处「太白、右丞」
@@ -758,22 +787,32 @@ def _detect_source_prefix(
         上：读书破万卷
         下：落笔超群英少陵、太白        → 出处「少陵、太白」
 
-    判定方法：尝试剥离下联首 k 字或末 k 字，若剥离后与上联等长，
-    且该段形似出处（人名／“X句”／文献题名／“人、X”连缀），
-    则认定为出处冠名。
+    **上联前置或后置**（汉碑集句常见，出处冠在上联）：
 
-    返回 (冠名, 剥离后的下联)。
+        上：含和履仁见上，永享年寿孔宙
+        下：应期作弼，入参文昌          → 上联出处「孔宙」
+
+    **上联后置**（八字联，出处长达 8 字）：
+
+        上：赤野生姿，青田矫翰
+        下：唐娄师德契苾明碑白云怡意，清泉洗心
+                                       → 下联出处「唐娄师德契苾明碑」
+
+    判定方法：尝试剥离任一联的首 k 字或末 k 字，
+    若剥离后两联等长，且该段形似出处，则认定为出处冠名。
+
+    返回 (出处, 剥离后的上联, 剥离后的下联)。
+    出处位置记在返回的 `source_pos` 中（见 find_couplets）。
     """
-    # 前置
-    for k in range(min(6, len(lower) - 2), 1, -1):
+    # ── 下联：前置 ──
+    for k in range(min(MAX_SOURCE_PREFIX, len(lower) - 2), 1, -1):
         if len(lower) - k != len(upper):
             continue
         prefix = lower[:k]
-        rest = lower[k:]
         if _looks_like_source(prefix):
-            return prefix, rest
+            return prefix, upper, lower[k:]
 
-    # 后置：形如「…正文A、B」
+    # ── 下联：后置（“…正文A、B”） ──
     # 出处名可能与正文连写（如「落笔超群英少陵、太白」），
     # 故遍历切分位置，取“尾部含已知人名对、且剩余部分与上联等长”者。
     for cut in range(len(lower) - 2, 2, -1):
@@ -783,12 +822,32 @@ def _detect_source_prefix(
             continue
         if len(rest) != len(upper):
             continue
-        # 尾部形如 “…X、Y”，允许 X 前有若干正文残留字
         pair = _extract_name_pair(tail)
         if pair and pair in _KNOWN_SOURCE_PAIRS:
-            return pair, rest
+            return pair, upper, rest
 
-    return "", lower
+    # ── 上联：前置或后置 ──
+    # 出处冠在上联时（如汉碑集句「…永享年寿孔宙；应期作弼，入参文昌」），
+    # 剥离后应与下联等长。
+    for k in range(min(MAX_SOURCE_PREFIX, len(upper) - 2), 1, -1):
+        if len(upper) - k != len(lower):
+            continue
+        prefix = upper[:k]
+        if _looks_like_source(prefix):
+            return prefix, upper[k:], lower
+    # 上联后置：单名（「…永享年寿孔宙」）或二人连缀（「…A、B」）
+    for cut in range(len(upper) - 2, 2, -1):
+        tail = upper[cut:]
+        rest = upper[:cut]
+        if len(rest) != len(lower):
+            continue
+        if _looks_like_source(tail):
+            return tail, rest, lower
+        pair = _extract_name_pair(tail)
+        if pair and pair in _KNOWN_SOURCE_PAIRS:
+            return pair, rest, lower
+
+    return "", upper, lower
 
 
 def _is_couplet_quote(quote: str) -> bool:
@@ -822,15 +881,23 @@ def find_couplets(text: str) -> list[dict[str, object]]:
         if not _is_couplet_quote(quote):
             continue
         upper, lower = _split_couplet(quote)
-        source, lower_body = _detect_source_prefix(upper, lower)
+
+        # 剥离编者标记（「见上」「一作」等），它们不是联句本身
+        upper, upper_marks = _strip_editorial_markers(upper)
+        lower, lower_marks = _strip_editorial_markers(lower)
+
+        # 剥离出处冠名（可能在任一联的前端或后端）
+        source, upper, lower = _detect_source_prefix(upper, lower)
+
         result.append(
             {
                 "start": m.start(),
                 "end": m.end(),
                 "quote": quote,
                 "upper": upper,
-                "lower": lower_body,
+                "lower": lower,
                 "lower_source": source,
+                "editorial_markers": upper_marks + lower_marks,
             }
         )
     return result
