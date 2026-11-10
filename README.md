@@ -29,6 +29,7 @@ python3 scripts/render_yinglian.py     # 生成 docs/index.html 预览
 | `docs/index.html` | 静态 HTML 预览（实体按类型着色） |
 | `SPEC_楹联语义标注.md` | 标注规范：符号体系、字段定义、校验方法、已知限制 |
 | `BOOK_楹联语义标注方法论.md` | **配套方法论**：20 章六编，讲清"为什么这么做"与"哪些做法被证伪" |
+| `skills/` | **操作手册**：11 篇 SKILL，从底本分层到迁移到新书，自成闭环 |
 
 
 当前统计：
@@ -56,7 +57,8 @@ python3 scripts/render_yinglian.py     # 生成 docs/index.html 预览
 ## 规范与限制
 
 完整规范见 [`SPEC_楹联语义标注.md`](SPEC_楹联语义标注.md)；
-方法论与设计理由见 [`BOOK_楹联语义标注方法论.md`](BOOK_楹联语义标注方法论.md)。
+方法论与设计理由见 [`BOOK_楹联语义标注方法论.md`](BOOK_楹联语义标注方法论.md)；
+具体操作步骤见 [`skills/INDEX.md`](skills/INDEX.md)。
 
 要点：
 
