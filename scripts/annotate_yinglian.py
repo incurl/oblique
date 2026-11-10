@@ -289,6 +289,7 @@ def build_couplets_index(couplets: list[dict]) -> dict:
     for i, c in enumerate(couplets, 1):
         upper = c.get("upper", "")
         lower = c.get("lower", "")
+        source = c.get("lower_source", "")
         items.append(
             {
                 "id": f"C{i:04d}",
@@ -300,9 +301,9 @@ def build_couplets_index(couplets: list[dict]) -> dict:
                 "type": c.get("type", "联语"),
                 "upper": upper,
                 "lower": lower,
+                "lower_source": source,
                 "upper_len": len(upper),
                 "lower_len": len(lower),
-                "balanced": len(upper) == len(lower),
                 "text": c.get("quote", ""),
                 "author": c.get("author"),
                 "author_near": c.get("author_near"),
@@ -311,13 +312,15 @@ def build_couplets_index(couplets: list[dict]) -> dict:
             }
         )
 
-    balanced = sum(1 for i in items if i["balanced"])
+    with_source = sum(1 for i in items if i["lower_source"])
+    equal_len = sum(1 for i in items if i["upper_len"] == i["lower_len"])
     return {
         "schema": "yinglian-couplets-v1",
         "total": len(items),
         "counts_by_type": dict(Counter(i["type"] for i in items)),
-        "balanced": balanced,
-        "balanced_ratio": round(balanced / len(items), 4) if items else 0.0,
+        "with_lower_source": with_source,
+        "equal_length": equal_len,
+        "equal_length_ratio": round(equal_len / len(items), 4) if items else 0.0,
         "items": items,
     }
 

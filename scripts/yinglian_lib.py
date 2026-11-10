@@ -45,6 +45,10 @@ try:  # 兼容 python -m scripts.xxx 与直接运行
         PERSONS,
         PLACES,
         QUANTITY_RE,
+        QUOTE_SOURCE_ALIASES,
+        QUOTE_SOURCE_NAMES,
+        QUOTE_SOURCE_SUFFIX,
+        QUOTE_SOURCE_WORKS,
         RITUAL_TERMS,
         SINGLE_DYNASTY_RE,
         STRICT_DYNASTY_RE,
@@ -78,6 +82,10 @@ except ImportError:  # pragma: no cover
         PERSONS,
         PLACES,
         QUANTITY_RE,
+        QUOTE_SOURCE_ALIASES,
+        QUOTE_SOURCE_NAMES,
+        QUOTE_SOURCE_SUFFIX,
+        QUOTE_SOURCE_WORKS,
         RITUAL_TERMS,
         SINGLE_DYNASTY_RE,
         STRICT_DYNASTY_RE,
@@ -663,6 +671,126 @@ def _split_couplet(quote: str) -> tuple[str, str]:
     return _strip_line_ending(upper.strip()), _strip_line_ending(lower.strip())
 
 
+# 集句对：下联前置“出处冠名”（如“王勃桃溪柳陌好经过”）
+# 判定不依赖词典，靠形制自证：剥离首 k 字后若上下联等长，则该 k 字为冠名。
+MAX_SOURCE_PREFIX = 4
+
+# 出处冠名的三类形态：
+#   1) 诗人名        —— 杜甫、王勃、刘长卿
+#   2) “X句”缩写    —— 苏句、山谷句、东坡句
+#   3) 文献题名      —— 高后碑、庾信马射赋、水经注
+SOURCE_SUFFIX_CHARS = "句碑赋传册集记序颂诏书篇卷品话录志谱表经解引"
+
+# 后置出处：下联结尾的“人、X”（多以顿号连缀二人）
+# 出处可能紧接正文，也可能与正文之间有一字（如「落笔超群英少陵、太白」）。
+TRAILING_SOURCE_RE = re.compile(r"([\u4e00-\u9fff]{2,4}、[\u4e00-\u9fff]{2,4})$")
+
+
+def _extract_name_pair(tail: str) -> str:
+    """从尾部文本中取出“人、X”式的出处人名对。
+
+    尾部可能含正文残留字（如「群英少陵、太白」），
+    故从各个位置尝试匹配“X、Y”并返回最长的合法匹配。
+    """
+    best = ""
+    for m in re.finditer(r"[\u4e00-\u9fff]{2,4}、[\u4e00-\u9fff]{2,4}", tail):
+        cand = m.group(0)
+        if len(cand) > len(best):
+            best = cand
+    return best
+
+
+def _build_known_source_pairs() -> frozenset[str]:
+    """构造已知出处人名对集合（X、Y），供后置出处识别。"""
+    names = QUOTE_SOURCE_NAMES | QUOTE_SOURCE_ALIASES
+    pairs: set[str] = set()
+    for a in names:
+        for b in names:
+            if a != b:
+                pairs.add(f"{a}、{b}")
+    return frozenset(pairs)
+
+
+_KNOWN_SOURCE_PAIRS = _build_known_source_pairs()
+
+
+def _looks_like_source(prefix: str) -> bool:
+    """判断一个前缀是否像“出处冠名”。"""
+    if prefix in QUOTE_SOURCE_NAMES or prefix in QUOTE_SOURCE_WORKS:
+        return True
+    # “X句”缩写
+    if prefix.endswith(QUOTE_SOURCE_SUFFIX) and len(prefix) <= 5:
+        return True
+    # 文献题名（以碑/赋/传/册…结尾）
+    if len(prefix) >= 3 and prefix[-1] in SOURCE_SUFFIX_CHARS:
+        return True
+    # 二人以上连缀：“夏承、韩敕”“少陵、太白”
+    if "、" in prefix and 2 <= len(prefix) <= 10:
+        parts = [p for p in prefix.split("、") if p]
+        if parts and all(
+            p in QUOTE_SOURCE_NAMES
+            or p in QUOTE_SOURCE_ALIASES
+            or p in QUOTE_SOURCE_WORKS
+            or (p.endswith(QUOTE_SOURCE_SUFFIX) and len(p) <= 5)
+            for p in parts
+        ):
+            return True
+    return False
+
+
+def _detect_source_prefix(
+    upper: str, lower: str
+) -> tuple[str, str]:
+    """识别并剥离下联的出处冠名（前置或后置）。
+
+    集句联的常见形制是把出处与联句并置，有两种位置：
+
+    **前置**（出处在下联开头）：
+
+        上：紫阁丹楼纷照耀
+        下：王勃桃溪柳陌好经过        → 出处「王勃」
+
+    **后置**（出处在下联结尾，多为二人连缀）：
+
+        上：举杯邀明月
+        下：太白、右丞                  → 出处「太白、右丞」
+
+        上：读书破万卷
+        下：落笔超群英少陵、太白        → 出处「少陵、太白」
+
+    判定方法：尝试剥离下联首 k 字或末 k 字，若剥离后与上联等长，
+    且该段形似出处（人名／“X句”／文献题名／“人、X”连缀），
+    则认定为出处冠名。
+
+    返回 (冠名, 剥离后的下联)。
+    """
+    # 前置
+    for k in range(min(6, len(lower) - 2), 1, -1):
+        if len(lower) - k != len(upper):
+            continue
+        prefix = lower[:k]
+        rest = lower[k:]
+        if _looks_like_source(prefix):
+            return prefix, rest
+
+    # 后置：形如「…正文A、B」
+    # 出处名可能与正文连写（如「落笔超群英少陵、太白」），
+    # 故遍历切分位置，取“尾部含已知人名对、且剩余部分与上联等长”者。
+    for cut in range(len(lower) - 2, 2, -1):
+        tail = lower[cut:]
+        rest = lower[:cut]
+        if "、" not in tail or len(tail) > 12:
+            continue
+        if len(rest) != len(upper):
+            continue
+        # 尾部形如 “…X、Y”，允许 X 前有若干正文残留字
+        pair = _extract_name_pair(tail)
+        if pair and pair in _KNOWN_SOURCE_PAIRS:
+            return pair, rest
+
+    return "", lower
+
+
 def _is_couplet_quote(quote: str) -> bool:
     """判断引号内文字是否像一副联语。"""
     if "；" not in quote:
@@ -694,13 +822,15 @@ def find_couplets(text: str) -> list[dict[str, object]]:
         if not _is_couplet_quote(quote):
             continue
         upper, lower = _split_couplet(quote)
+        source, lower_body = _detect_source_prefix(upper, lower)
         result.append(
             {
                 "start": m.start(),
                 "end": m.end(),
                 "quote": quote,
                 "upper": upper,
-                "lower": lower,
+                "lower": lower_body,
+                "lower_source": source,
             }
         )
     return result
