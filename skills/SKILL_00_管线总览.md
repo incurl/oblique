@@ -71,6 +71,8 @@ last_updated: 2026-11-10
 | `scripts/annotate_yinglian.py` | 02–04/06 | 编排全流程，产出 Markdown + 三个 JSON | ✅ |
 | `scripts/lint_text_integrity.py` | 05 | 文本完整性 / 嵌套 / 引号 / 类型校验 | ✅ |
 | `scripts/render_yinglian.py` | 06 | 生成静态 HTML 预览 | ✅ |
+| `scripts/export_tiddlywiki.py` | 06 | 导出 TiddlyWiki（条目为 tiddler、实体为 tag） | ✅ |
+| `scripts/verify_tiddlywiki.py` | 06 | 用独立数据源交叉校验导出结果 | ✅ |
 
 **标准执行顺序**：
 
@@ -78,6 +80,8 @@ last_updated: 2026-11-10
 python3 scripts/annotate_yinglian.py     # 生成
 python3 scripts/lint_text_integrity.py   # 校验（不通过就不要提交）
 python3 scripts/render_yinglian.py       # 渲染
+python3 scripts/export_tiddlywiki.py     # 导出 TiddlyWiki
+python3 scripts/verify_tiddlywiki.py     # 校验导出（不通过就不要提交）
 ```
 
 **设计原则**：`annotate_yinglian.py` 是**纯函数式**的——
@@ -115,8 +119,10 @@ python3 scripts/render_yinglian.py       # 渲染
                     ▼                          │
              entities.json  ◄──────────────────┘
                     │
-                    ▼
-              index.html（渲染）
+        ┌────────────┴────────────┐
+        ▼                         ▼
+  index.html（渲染）      tiddlywiki/（导出）
+                            条目=tiddler，实体=tag
 ```
 
 **唯一事实源是 `.tagged.md`**。
@@ -166,14 +172,28 @@ python3 scripts/render_yinglian.py       # 渲染
 | 有作者线索 | 91（3.0%） |
 | 有地点线索 | 1,182（39.1%） |
 
-### 5.5 质量门
+### 5.5 TiddlyWiki 导出
+
+| 项 | 值 |
+|---|---|
+| tiddler 总数 | 8,610 |
+| 条目 tiddler | 2,254 |
+| 联语 tiddler | 3,020 |
+| 实体 tiddler | 3,108 |
+| 章节 tiddler | 223 |
+| 索引 / 首页 tiddler | 5 |
+| 不同标签数 | 3,370 |
+| 内部链接数 | 21,999（断链 0） |
+
+### 5.6 质量门
 
 ```
 格式校验 5/5 通过   ← lint_text_integrity.py
 领域校验 4/4 通过   ← 见 SKILL_05
+导出校验 6/6 通过   ← verify_tiddlywiki.py
 ```
 
-**任何改动后，这两组数字都必须仍然成立，否则不许提交。**
+**任何改动后，这三组数字都必须仍然成立，否则不许提交。**
 
 ---
 

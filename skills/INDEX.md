@@ -4,7 +4,7 @@
 > **本目录自成闭环**：读完全部 SKILL 即可独立开展工作，
 > 无需查阅任何外部项目。
 
-**最后更新**：2026-11-10　|　**版本**：1.0
+**最后更新**：2026-11-11　|　**版本**：1.1
 
 ---
 
@@ -86,9 +86,9 @@
 
 | 编号 | 文件 | 说明 |
 |---|---|---|
-| 06 | [SKILL_06_语料构建与渲染.md](SKILL_06_语料构建与渲染.md) | `entities.json` / `couplets.json` / `structure.json` 字段设计、HTML 渲染、静态预览 |
+| 06 | [SKILL_06_语料构建与渲染.md](SKILL_06_语料构建与渲染.md) | `entities.json` / `couplets.json` / `structure.json` 字段设计、HTML 渲染、静态预览、**TiddlyWiki 导出**（tiddler 模型、tag 体系、`.tid` 格式与三个坑） |
 
-**产出**：三个索引 + `docs/index.html`。
+**产出**：三个索引 + `docs/index.html` + `tiddlywiki/楹联丛话全编/`（8,610 个 tiddler，条目为 tiddler、实体为 tag，可交叉筛选）。
 
 ---
 

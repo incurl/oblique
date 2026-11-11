@@ -1,9 +1,9 @@
 ---
 name: skill-06
 title: 语料构建与渲染
-description: 从标注正文派生出三个 JSON 索引（实体/联语/结构）并渲染静态 HTML。涵盖字段设计与可靠性分级、Markdown+JSON 双轨制、实体着色渲染、以及"唯一事实源"架构。当需要产出可被程序消费的语料、或做可视化预览时使用。
-version: 1.0
-last_updated: 2026-11-10
+description: 从标注正文派生出三个 JSON 索引（实体/联语/结构），渲染静态 HTML，并导出 TiddlyWiki（条目为 tiddler、实体为 tag）。涵盖字段设计与可靠性分级、Markdown+JSON 双轨制、实体着色渲染、TiddlyWiki 的 tiddler 模型与 tag 体系、.tid 格式与三个常见坑、以及"唯一事实源"架构。当需要产出可被程序消费的语料、做可视化预览、或发布可交叉检索的知识库时使用。
+version: 1.1
+last_updated: 2026-11-11
 ---
 
 # SKILL 06: 语料构建与渲染
@@ -20,7 +20,7 @@ last_updated: 2026-11-10
 | | 内容 |
 |---|---|
 | 输入 | `.tagged.md` + 文档树 |
-| 产出 | `entities.json` / `couplets.json` / `structure.json` + `docs/index.html` |
+| 产出 | `entities.json` / `couplets.json` / `structure.json` + `docs/index.html` + `tiddlywiki/` |
 | 前置 | [SKILL_03](SKILL_03_实体标注.md)、[SKILL_04](SKILL_04_联语识别.md) |
 | 后继 | 研究使用 |
 
@@ -29,6 +29,7 @@ last_updated: 2026-11-10
 - [ ] 三个 JSON 可从 `.tagged.md` 完全重建
 - [ ] 每个字段的可靠性有明确说明
 - [ ] HTML 能显示实体类型着色与编号跳转
+- [ ] TiddlyWiki 中无断链、无重复标题，条目与联语零遗漏
 
 ---
 
@@ -216,9 +217,139 @@ def replace_entities(text):
 
 ---
 
-## 七、禁止事项与推荐做法
+## 七、TiddlyWiki 导出
 
-### 7.1 禁止
+### 7.1 为什么导出 TiddlyWiki
+
+静态 HTML 适合"读"，但**"查"**需要交叉检索。
+TiddlyWiki 的 tag 机制天然适合：条目是 tiddler，实体是 tag，
+于是"某人 + 某地 + 某书 + 某类联语"这种组合查询，
+一条 filter 就能表达：
+
+```
+[tag[人名/林则徐]tag[地点/福州]tag[楹联丛话]]
+```
+
+这正是把实体标注**升级为可计算知识**的一步。
+
+### 7.2 tiddler 模型
+
+| 前缀 | 内容 | 数量 |
+|---|---|---|
+| `条目/` | 原文条目（段落级） | 2,254 |
+| `联语/` | 单副联语 | 3,020 |
+| `实体/` | 规范名实体 | 3,108 |
+| `章节/` | 书 / 卷 / 门类 / 条目导航 | 223 |
+| — | 首页与索引 | 5 |
+
+**为什么按段落而非按书分 tiddler**：
+一则联语、一条实体、一处出处常常只出现在一个段落里，
+粒度过粗就失去互链能力；粒度过细则 tiddler 数量爆炸。
+
+### 7.3 标签体系
+
+| 类别 | 形式 | 例 |
+|---|---|---|
+| 类别 | `条目` `联语` `实体` `章节` | `[tag[条目]]` |
+| 归属 | `书名`、`书名/门类` | `楹联丛话/故事` |
+| 实体 | `类型/规范名` | `人名/林则徐` |
+| 联语类型 | 类型名 | `挽联` |
+
+**关键**：实体标签一律用**规范名**（`林则徐`）而非**显示名**（`林少穆`），
+否则同一实体会分裂成多个 tag，筛选结果就漏了。
+
+### 7.4 `.tid` 文件格式
+
+TiddlyWiki 的 `.tid` 格式非常简单（见 TiddlyWiki5 `boot/boot.js` 的
+`tiddlerdeserializer/tid`）：
+
+```
+title: 条目/1.3.1
+编号: 1.3.1
+书: 楹联丛话
+tags: 条目 楹联丛话 楹联丛话/故事 人名/纪昀 地点/成都
+
+!楹联丛话 › 故事
+
+正文……
+
+```
+
+- 第一段是 `name: value` 字段，每行一个；`#` 开头是注释；
+- **空行之后**才是正文；
+- `tags` 用空格分隔，含空格的标签用 `[[...]]` 包裹。
+
+### 7.5 三个容易踩的坑
+
+#### 坑一：链接语法方向相反
+
+TiddlyWiki 是 `[[显示文本|目标]]`，
+而本项目的标注消歧语法是 `〖别名|规范名〗`，
+**两者顺序正好相反**。直接照搬会生成"看起来像链接、其实是一坨纯文本"的链接。
+
+```python
+# ✗ 错：会渲染成纯文本「实体/人名/纪昀」
+f"[[{target}|{display}]]"
+# ✓ 对
+f"[[{display}|{target}]]"
+```
+
+#### 坑二：表格单元格内不能用 `[[...]]`
+
+表格的单元格正则 `\|([^\n\|]*)\|` 不允许出现竖线，
+所以单元格里的 `[[显示|目标]]` 会被当成纯文本。必须改用 `<$link>` 构件：
+
+```
+| <$link to="实体/人名/林则徐">林则徐</$link> | 37 |
+```
+
+#### 坑三：没有 `<<list>>` 宏
+
+TiddlyWiki 核心**没有** `<<list>>` 宏。
+列举某标签下的 tiddler 要用：
+
+```
+<<list-links filter:"[tag[人名/林则徐]sort[编号]]">>
+```
+
+### 7.6 校验：必须用独立数据源交叉核对
+
+导出器自己写的数据不能用来校验导出器。
+`scripts/verify_tiddlywiki.py` 改用 `structure.json` / `couplets.json`
+（由标注管线独立产出）来核对：
+
+```
+✓ 1. 无重复标题
+✓ 2. 全部 21,999 处内部链接均可解析
+✓ 3. 3,322 个实体标签均有对应 tiddler
+✓ 4. 全部 2,254 个源段落均已导出
+✓ 5. 全部 3,020 副联语均已导出
+✓ 6. 2,254 个条目的实体 tag 与正文标注一致
+```
+
+第 6 项尤其重要：它逐条比对"正文里标了什么"与"tag 里挂了什么"，
+能立刻抓出标签漏挂、错挂、类型错分。
+
+### 7.7 打包与浏览
+
+导出目录本身就是标准 TiddlyWiki 目录（含 `tiddlywiki.info` 与 `tiddlers/`）：
+
+```bash
+# 打包成单个 HTML
+node /path/to/TiddlyWiki5/tiddlywiki.js tiddlywiki/楹联丛话全编 \
+     --output dist --build index
+
+# 启动本地服务浏览
+node /path/to/TiddlyWiki5/tiddlywiki.js tiddlywiki/楹联丛话全编 --listen
+```
+
+单文件约 7.5 MB（8,610 个 tiddler），浏览器直接打开即可。
+
+---
+
+## 八、禁止事项与推荐做法
+
+### 8.1 禁止
 
 ❌ **手工编辑 JSON** —— 下次重跑就被覆盖，且可能引入与正文不一致。
 
@@ -226,7 +357,9 @@ def replace_entities(text):
 
 ❌ **渲染时修改原文** —— 渲染是只读转换。
 
-### 7.2 推荐
+❌ **用显示名做实体标签** —— 同一实体会分裂，筛选漏结果。
+
+### 8.2 推荐
 
 ✅ **JSON 全部由脚本派生** —— 保证与 `.tagged.md` 一致。
 
@@ -236,23 +369,29 @@ def replace_entities(text):
 
 ✅ **`preview` 截断** —— 索引只需"认得出"。
 
+✅ **导出结果用独立数据源校验** —— 自己不能验自己。
+
 ---
 
-## 八、工具与脚本
+## 九、工具与脚本
 
 | 脚本 | 产出 |
 |---|---|
 | `scripts/annotate_yinglian.py` | 三个 JSON + `.tagged.md` |
 | `scripts/render_yinglian.py` | `docs/index.html` |
+| `scripts/export_tiddlywiki.py` | `tiddlywiki/楹联丛话全编/` |
+| `scripts/verify_tiddlywiki.py` | 导出结果校验报告 |
 
 ```bash
 python3 scripts/annotate_yinglian.py
 python3 scripts/render_yinglian.py
+python3 scripts/export_tiddlywiki.py
+python3 scripts/verify_tiddlywiki.py
 ```
 
 ---
 
-## 九、检查清单
+## 十、检查清单
 
 - [ ] 三个 JSON 的 `schema` 字段一致
 - [ ] `entities.json` 的 `total` == 正文实体标记数
@@ -260,6 +399,10 @@ python3 scripts/render_yinglian.py
 - [ ] `structure.json` 的 `line_no` 单调递增
 - [ ] HTML 中实体着色正常、编号可跳转
 - [ ] HTML 中无残留 `〖`
+- [ ] TiddlyWiki 中无重复标题
+- [ ] TiddlyWiki 中无断链（`tc-tiddlylink-missing` 为 0）
+- [ ] 每个实体标签都有对应的实体 tiddler
+- [ ] 条目 tiddler 数 == `structure.json` 的段落数
 
 **自检**：
 
@@ -276,7 +419,7 @@ PY
 
 ---
 
-## 十、FAQ
+## 十一、FAQ
 
 **Q：能不能直接输出 TEI XML？**
 A：可以，映射是机械的（`@`→`<persName>`，`聯`→`<lg><l>`…），
@@ -292,9 +435,14 @@ A：可以砍 `refs` 上限，但当前规模（616KB）在可接受范围。
 A：当前是单文件预览，可接受。
 若需发布，改为分页渲染或按书拆分。
 
+**Q：TiddlyWiki 导出会取代标注 Markdown 吗？**
+A：不会。TiddlyWiki 是**派生视图**，用于检索与浏览；
+权威语料始终是 `.tagged.md`，校验与复核仍以它为准。
+
 ---
 
-## 十一、相关
+## 十二、相关
 
 - 上游：[SKILL_04 联语识别](SKILL_04_联语识别.md)、[SKILL_05 形制校验](SKILL_05_形制校验.md)
 - 规范：[../SPEC_楹联语义标注.md](../SPEC_楹联语义标注.md) §五
+

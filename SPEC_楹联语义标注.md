@@ -31,6 +31,8 @@ scripts/
   annotate_yinglian.py            生成 Markdown 与三个 JSON 索引
   lint_text_integrity.py          文本完整性 / 嵌套 / 引号校验
   render_yinglian.py              生成静态 HTML 预览
+  export_tiddlywiki.py            导出 TiddlyWiki（条目=tiddler，实体=tag）
+  verify_tiddlywiki.py            用独立数据源交叉校验导出结果
 data/
   楹联丛话全编.tagged.md          标注正文（约 1.2 MB）
   entities.json                   实体索引
@@ -38,6 +40,10 @@ data/
   structure.json                  书 / 卷 / 门类 / 条目结构
 docs/
   index.html                      静态预览（约 2.2 MB）
+tiddlywiki/
+  楹联丛话全编/                   TiddlyWiki 导出（8,610 个 tiddler）
+    tiddlywiki.info               编辑器 / 服务端配置
+    tiddlers/                     条目 / 联语 / 实体 / 章节 / 索引
 ```
 
 复现：
@@ -46,6 +52,8 @@ docs/
 python3 scripts/annotate_yinglian.py
 python3 scripts/lint_text_integrity.py
 python3 scripts/render_yinglian.py
+python3 scripts/export_tiddlywiki.py
+python3 scripts/verify_tiddlywiki.py
 ```
 
 ---
@@ -339,7 +347,84 @@ OK: text integrity verified.
 
 ---
 
-## 八、已知限制
+## 八、TiddlyWiki 导出
+
+`scripts/export_tiddlywiki.py` 把标注语料导出为**单个 TiddlyWiki**，
+用于交叉检索。TiddlyWiki 导出是**派生视图**，不替代标注 Markdown；
+权威语料始终是 `data/楹联丛话全编.tagged.md`。
+
+### 8.1 tiddler 模型
+
+| 前缀 | 内容 | 数量 | 依据 |
+|---|---|---|---|
+| `条目/` | 原文条目（段落级） | 2,254 | `structure.json` 的段落 / 注记节点 |
+| `联语/` | 单副联语 | 3,020 | `couplets.json` 的每一条 |
+| `实体/` | 规范名实体 | 3,108 | `entities.json` + 联语元数据中的作者/地点/出处 |
+| `章节/` | 书 / 卷 / 门类 / 条目导航 | 223 | `structure.json` 的标题节点 |
+| — | 首页与索引 | 5 | `楹联丛话全编` / `书目` / `实体索引` / `联语索引` / `体例说明` |
+
+**粒度取段落而非书**：一则联语、一条实体、一处出处常常只出现在一个段落里，
+粒度过粗会失去互链能力。
+
+### 8.2 标签体系
+
+| 类别 | 形式 | 例 |
+|---|---|---|
+| 类别 | `条目` `联语` `实体` `章节` `索引` `首页` | `[tag[条目]]` |
+| 归属 | `书名`、`书名/门类`、`书名/卷` | `楹联丛话/故事` |
+| 实体 | `类型/规范名`（18 类） | `人名/林则徐` |
+| 联语类型 | 类型名 | `挽联` |
+
+**规范名而非显示名**：实体标签一律使用规范名（`林则徐`），
+不使用显示名（`林少穆`），否则同一实体会分裂成多个标签，筛选结果漏失。
+作者字段的字/号（`少穆`、`林少穆`）会先经别名表归一到规范名再打标。
+
+### 8.3 `.tid` 文件格式
+
+格式见 TiddlyWiki5 `boot/boot.js` 的 `tiddlerdeserializer/tid`：
+
+```
+title: 条目/1.3.1
+编号: 1.3.1
+书: 楹联丛话
+门类: 故事
+tags: 条目 楹联丛话 楹联丛话/故事 人名/纪昀 地点/成都
+
+!楹联丛话 › 故事
+
+正文……
+```
+
+- 第一段是 `name: value` 字段，每行一个；`#` 开头是注释；
+- **空行之后**才是正文；
+- `tags` 用空格分隔，含空格的标签用 `[[...]]` 包裹。
+
+### 8.4 三条硬性约定
+
+1. **链接语法方向**：TiddlyWiki 是 `[[显示文本|目标]]`，
+   与本项目标注消歧语法 `〖别名|规范名〗` **顺序相反**，转换时必须显式换位。
+2. **表格单元格内不能用 `[[...]]`**：表格单元格正则 `\|([^\n\|]*)\|`
+   不允许竖线，须改用 `<$link to="...">显示</$link>`。
+3. **没有 `<<list>>` 宏**：TiddlyWiki 核心未提供该宏，
+   列举标签下的 tiddler 应用 `<<list-links filter:"[tag[...]sort[编号]]">>`。
+
+### 8.5 校验
+
+`scripts/verify_tiddlywiki.py` 用**独立于导出器**的数据源
+（`structure.json`、`couplets.json`）交叉核对导出结果：
+
+```
+✓ 1. 无重复标题
+✓ 2. 全部 21,999 处内部链接均可解析
+✓ 3. 3,322 个实体标签均有对应 tiddler
+✓ 4. 全部 2,254 个源段落均已导出
+✓ 5. 全部 3,020 副联语均已导出
+✓ 6. 2,254 个条目的实体 tag 与正文标注一致
+```
+
+---
+
+## 九、已知限制
 
 1. **实体标注是词典 + 规则驱动，不是全量 NER**。人名、地名覆盖了书中高频、可考的专名，但冷僻人物、地名仍有漏标。
 2. **不做原文校勘**。源文件的异体字、讹字、断句一律保留，例如 `楹联续活`、`脍灸人口`。
@@ -348,10 +433,12 @@ OK: text integrity verified.
 5. **动词层 `⟦◈⟧` 尚未启用**。语法已预留，但联话以名词性描写为主，动词标注收益低、误标风险高。
 6. **卷首目录未收入正文**。第 4–78 行为电子本自动生成目录，已由程序重建为带锚点目录；正文 2,289 段全部保留并校验。
 7. **现代附录**。`作者简介` 与 `恶人谷注` 不是梁章钜原文，分别用 `::: 小传`、`::: 校注` 标出，避免与原文混淆。
+8. **TiddlyWiki 导出不改一个字**。它只是把标记翻译成 tag 与链接，
+   原文仍以 `.tagged.md` 为准；导出器的任何"顺手修正"都会破坏只加标记的原则。
 
 ---
 
-## 九、如何扩充词典
+## 十、如何扩充词典
 
 所有词表集中在 `scripts/yinglian_dict.py`：
 
@@ -367,6 +454,8 @@ OK: text integrity verified.
 python3 scripts/annotate_yinglian.py
 python3 scripts/lint_text_integrity.py
 python3 scripts/render_yinglian.py
+python3 scripts/export_tiddlywiki.py
+python3 scripts/verify_tiddlywiki.py
 ```
 
 如果新增的是容易与普通词混淆的地名，请同时加入 `AMBIGUOUS_PLACES` 或在 `find_candidates()` 中增加上下文约束。
