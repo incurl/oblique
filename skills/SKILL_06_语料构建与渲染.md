@@ -312,6 +312,26 @@ TiddlyWiki 核心**没有** `<<list>>` 宏。
 <<list-links filter:"[tag[人名/林则徐]sort[编号]]">>
 ```
 
+#### 坑四：`sort[编号]` 是字典序，不是数值序
+
+`编号` 形如 `1.3.10`，字典序下 `1.3.10` 会排在 `1.3.2` **前面**。
+所以凡是要按编号排序，一律用零填充的 `序` 字段（`0001.0003.0010`）：
+
+```
+<<list-links filter:"[tag[楹联丛话/故事]sort[序]">>
+```
+
+TOC 宏则直接用自然排序 `sortan[序]`。
+
+#### 坑五：`[tag[联语]]` 会把条目也捞进来
+
+条目 tiddler 只要含联语，也会被打上 `联语` 标签。
+要只列联语 tiddler，得用前缀限定：
+
+```
+<<list-links filter:"[prefix[联语/]sort[编号]]">>
+```
+
 ### 7.6 校验：必须用独立数据源交叉核对
 
 导出器自己写的数据不能用来校验导出器。
@@ -319,24 +339,58 @@ TiddlyWiki 核心**没有** `<<list>>` 宏。
 （由标注管线独立产出）来核对：
 
 ```
+✓ 0. 全部 .tid 的头/正文分隔正确（正文不会被当成字段吞掉）
 ✓ 1. 无重复标题
 ✓ 2. 全部 21,999 处内部链接均可解析
-✓ 3. 3,322 个实体标签均有对应 tiddler
+✓ 3. 3,545 个实体标签均有对应 tiddler
 ✓ 4. 全部 2,254 个源段落均已导出
 ✓ 5. 全部 3,020 副联语均已导出
 ✓ 6. 2,254 个条目的实体 tag 与正文标注一致
+✓ 7. 紫色编号目录完整（2,477 个节点，父子标签关系全部正确）
+✓ 8. 目录排序正确（224 个父节点下，同级「序」与紫色编号一致）
 ```
 
 第 6 项尤其重要：它逐条比对"正文里标了什么"与"tag 里挂了什么"，
 能立刻抓出标签漏挂、错挂、类型错分。
 
-### 7.7 打包与浏览
+第 7、8 项针对目录：逐个节点核对"父 tiddler 的标题"这个标签有没有挂上，
+以及同一父节点下"序"与紫色编号的次序是否一致。
+
+### 7.7 紫色编号目录（TOC）
+
+侧栏首位的「目录」标签页用 TiddlyWiki **标准目录宏**生成，
+不另造轮子。标准机制的关键：**用标签表达父子关系**——
+子 tiddler 被打上父 tiddler 的**标题**。
+
+```
+TableOfContents                     ← 目录根，标签 $:/tags/SideBar
+  └─ 章节/1   （挂标签 TableOfContents）
+       └─ 章节/1.3  （挂标签 章节/1）
+            └─ 条目/1.3.1  （挂标签 章节/1.3）
+```
+
+目录根 tiddler 的正文：
+
+```
+<<toc-selective-expandable 'TableOfContents' "sortan[序]">>
+```
+
+每个节点用 `caption` 字段承载显示文本（`caption` 优先于 `title`）：
+
+```
+caption: <span class="pn">1.3.1</span> 尝闻纪昀师言：楹帖始于桃符…
+```
+
+紫色编号直接沿用 `structure.json` 的节点 id，不重新编号。
+样式由 `样式/紫色编号` 这个 `$:/tags/Stylesheet` tiddler 提供。
+
+### 7.8 打包与浏览
 
 `scripts/build_tiddlywiki.py` 把导出目录编译成**单个自包含 HTML**：
 
 ```bash
 python3 scripts/build_tiddlywiki.py
-# → tiddlywiki/oblique.html（约 7.7 MB，8,614 个 tiddler）
+# → tiddlywiki/oblique.html（约 8.2 MB，8,623 个 tiddler）
 ```
 
 脚本会自动查找 TiddlyWiki5 源码目录（`--tw` 参数或 `TIDDLYWIKI5` 环境变量），
@@ -353,7 +407,7 @@ node /path/to/TiddlyWiki5/tiddlywiki.js tiddlywiki/楹联丛话全编 --listen
 
 单文件浏览器直接打开即可，无需服务器、无需联网。
 
-### 7.8 `.tid` 的头/正文分隔（踩过的坑）
+### 7.9 `.tid` 的头/正文分隔（踩过的坑）
 
 TiddlyWiki 的 `.tid` 反序列化器用 `text.split(/\r?\n\r?\n/mg)` 切分头与正文，
 **头与正文之间必须有一个真正的空行**。

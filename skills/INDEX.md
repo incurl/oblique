@@ -88,7 +88,7 @@
 |---|---|---|
 | 06 | [SKILL_06_语料构建与渲染.md](SKILL_06_语料构建与渲染.md) | `entities.json` / `couplets.json` / `structure.json` 字段设计、HTML 渲染、静态预览、**TiddlyWiki 导出**（tiddler 模型、tag 体系、`.tid` 格式与三个坑） |
 
-**产出**：三个索引 + `docs/index.html` + `tiddlywiki/oblique.html`（单文件 wiki，约 7.7 MB；8,614 个 tiddler，条目为 tiddler、实体为 tag，可交叉筛选）。
+**产出**：三个索引 + `docs/index.html` + `tiddlywiki/oblique.html`（单文件 wiki，约 8.2 MB；8,616 个 tiddler，条目为 tiddler、实体为 tag，可交叉筛选；侧栏带紫色编号目录）。
 
 ---
 

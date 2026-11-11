@@ -39,6 +39,9 @@ DATA = ROOT / "data"
 
 TID_RE = re.compile(r"[\\/:*?\"<>|\r\n\t]")
 
+# 目录根 tiddler：TiddlyWiki 标准 TOC 机制以它为标签根
+TOC_ROOT = "TableOfContents"
+
 
 def safe_filename(title: str) -> str:
     """把 tiddler 标题转成安全的文件名。"""
@@ -322,6 +325,81 @@ def build_alias_map(marked_text: str) -> dict[tuple[str, str], str]:
     return alias
 
 
+def sort_key(node_id: str) -> str:
+    """把紫色编号转成可正确排序的键。
+
+    ``sort[编号]`` 是字典序，"1.3.10" 会排在 "1.3.2" 前面；
+    标准 TOC 宏用 ``sortan[编号]`` 做自然排序，但正文里其它
+    列表仍走 ``sort[编号]``，故统一改用零填充键。
+    """
+    return ".".join(f"{int(seg):04d}" for seg in node_id.split("."))
+
+
+def toc_caption(node: dict | None, preview: str = "") -> str:
+    """目录条目的显示文本：紫色编号 + 标题。
+
+    ``caption`` 字段优先于 ``title``（见 core 的 toc-caption 宏），
+    因此这里可以放 HTML，用 ``.pn`` 类给紫色编号上色。
+
+    段落级节点没有标题，用正文开头作为摘要（过长则截断）。
+    """
+    if not node:
+        return ""
+    nid = node["编号"]
+    title = node["标题"]
+    if not title:
+        title = preview.strip() or nid
+        if len(title) > 40:
+            title = title[:40] + "…"
+    return f'<span class="pn">{nid}</span> {title}'
+
+
+def build_toc_tree(structure: dict, headings: dict) -> dict[str, dict]:
+    """构造紫色编号目录树。
+
+    TiddlyWiki 标准目录宏（``toc-selective-expandable`` 等）用**标签**表达
+    父子关系：子 tiddler 被打上父 tiddler **标题**的标签。
+    因此这里返回 id → {编号, 标题, 父标题, 层级} 的映射：
+
+        id         紫色编号（structure.json 的节点 id）
+        标题       节点标题
+        父标题     父节点对应的 tiddler 标题（顶层为 TableOfContents）
+        层级       1=书 2=卷/门类 3=条目
+
+    节点标题的 tiddler 标题约定：
+        书 / 卷 / 门类 / 条目级 → ``章节/<id>``
+        段落 / 注记               → ``条目/<id>``
+    """
+    tree: dict[str, dict] = {}
+
+    def title_for(node: dict) -> str:
+        kind = node["kind"]
+        prefix = "条目" if kind in ("paragraph", "note") else "章节"
+        return f"{prefix}/{node['id']}"
+
+    def walk(node: dict, parent_title: str, depth: int) -> None:
+        nid = node["id"]
+        kind = node["kind"]
+        title = headings.get(nid, (0, ""))[1] or node.get("title", "")
+        tree[nid] = {
+            "编号": nid,
+            "标题": title,
+            "父标题": parent_title,
+            "层级": depth,
+            "种类": kind,
+            "tiddler": title_for(node),
+        }
+        for child in node.get("children") or []:
+            walk(child, title_for(node), depth + 1)
+
+    ai = structure.get("author_intro")
+    if ai:
+        walk(ai, TOC_ROOT, 1)
+    for book in structure.get("books", []):
+        walk(book, TOC_ROOT, 1)
+    return tree
+
+
 def build_paragraph_meta(structure: dict, headings: dict) -> dict:
     """节点 id → (书, 卷, 门类, 条目, 路径, 层级)。
 
@@ -359,6 +437,45 @@ def build_paragraph_meta(structure: dict, headings: dict) -> dict:
         walk(book, "", "", "", "", "")
 
     return meta
+
+
+def build_toc_tiddler(builder: TiddlyWikiBuilder, toc_tree: dict[str, dict]) -> None:
+    """写出目录根 tiddler 与配套样式。
+
+    完全采用 TiddlyWiki 的标准目录机制（``toc`` 系列宏）：
+
+    - 根 tiddler 名为 ``TableOfContents``，标签 ``$:/tags/SideBar``，
+      置于侧栏首位（``list-before`` 指向 Open 标签页）；
+    - 正文用 ``<<toc-selective-expandable 'TableOfContents' "sortan[序]">>``；
+    - 子节点靠**标签**建立父子关系：子 tiddler 被打上父 tiddler 的标题，
+      这一步已在各处 ``builder.add`` 时完成。
+
+    ``sortan[序]`` 用自然排序，保证 "1.3.2" 排在 "1.3.10" 之前。
+    """
+    body = (
+        '<div class="tc-table-of-contents">\n\n'
+        '<<toc-selective-expandable \'TableOfContents\' "sortan[序]">>\n\n'
+        '</div>\n'
+    )
+    builder.add(TOC_ROOT, body, ["$:/tags/SideBar"],
+                fields={"caption": "目录",
+                        "list-before": "$:/core/ui/SideBar/Open",
+                        "序": "0000"})
+
+    # 紫色编号的配色沿用 docs/index.html 的 .pn 样式
+    css = (
+        ".tc-sidebar-lists .pn,\n"
+        ".tc-table-of-contents .pn {\n"
+        "  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;\n"
+        "  font-size: .78em;\n"
+        "  color: #9b7bb5;\n"
+        "  letter-spacing: .02em;\n"
+        "  margin-right: .25em;\n"
+        "}\n"
+        ".tc-table-of-contents .toc-item-selected > a > .tc-toc-caption .pn { color: #7a4b8a; }\n"
+        ".tc-table-of-contents .tc-toc-caption { letter-spacing: .02em; }\n"
+    )
+    builder.add("样式/紫色编号", css, ["$:/tags/Stylesheet"])
 
 
 def build_index_tiddlers(
@@ -446,7 +563,7 @@ def build_index_tiddlers(
     lines.append("")
     lines.append("!! 全部")
     lines.append("")
-    lines.append('<<list-links filter:"[tag[联语]sort[编号]]">>')
+    lines.append('<<list-links filter:"[prefix[联语/]sort[编号]]">>')
     lines.append("")
     builder.add("联语索引", "\n".join(lines), ["索引", "联语"])
 
@@ -617,6 +734,8 @@ def main() -> None:
     # ------------------------------------------------------------------
     # 结构：段落 id → (书, 卷/门类, 条目, 路径)
     para_meta = build_paragraph_meta(structure, headings)
+    # 紫色编号目录树（供 TOC 宏用标签建立父子关系）
+    toc_tree = build_toc_tree(structure, headings)
     entry_couplets: dict[str, list[dict]] = defaultdict(list)
     for c in couplets:
         entry_couplets[c["ref"]].append(c)
@@ -638,6 +757,11 @@ def main() -> None:
         if entry:
             tags.append(f"{book}/{entry}")
         label = blocks.get(pid, "")
+
+        # 目录树：打上父节点标签，使标准 TOC 宏能据此建立父子关系
+        node = toc_tree.get(pid)
+        if node:
+            tags.append(node["父标题"])
 
         # 段落内实体 → tag
         for type_, canon in para_entities.get(pid, []):
@@ -673,7 +797,10 @@ def main() -> None:
 
         builder.add(f"条目/{pid}", "\n".join(lines), tags,
                     fields={"编号": pid, "书": book, "门类": section or volume or "",
-                            "条目名": entry or "", "语义块": label})
+                            "条目名": entry or "", "语义块": label,
+                            "caption": toc_caption(toc_tree.get(pid),
+                                                  strip_markers(text)),
+                            "序": sort_key(pid)})
 
     # ------------------------------------------------------------------
     # 3. 实体 tiddler
@@ -710,7 +837,7 @@ def main() -> None:
         lines.append("")
         lines.append("!! 出现于")
         lines.append("")
-        lines.append(f'<<list-links filter:"[tag[{tag}]sort[编号]]">>')
+        lines.append(f'<<list-links filter:"[tag[{tag}]sort[序]">>')
         lines.append("")
         crefs = couplet_entity_refs.get(tag, [])
         if crefs:
@@ -749,13 +876,25 @@ def main() -> None:
         lines.append("")
         lines.append("!! 条目")
         lines.append("")
-        lines.append(f'<<list-links filter:"[tag[{tag}]sort[编号]]">>')
+        lines.append(f'<<list-links filter:"[tag[{tag}]sort[序]">>')
         lines.append("")
-        builder.add(f"章节/{nid}", "\n".join(lines), ["章节", book, tag],
-                    fields={"编号": nid, "书": book, "层级": str(level)})
+        chapter_tags = ["章节", book, tag]
+        # 目录树：打上父节点标签，使标准 TOC 宏能据此建立父子关系
+        node = toc_tree.get(nid)
+        if node:
+            chapter_tags.append(node["父标题"])
+        builder.add(f"章节/{nid}", "\n".join(lines), chapter_tags,
+                    fields={"编号": nid, "书": book, "层级": str(level),
+                            "caption": toc_caption(toc_tree.get(nid)),
+                            "序": sort_key(nid)})
 
     # ------------------------------------------------------------------
-    # 5. 首页与索引
+    # 5. 目录（紫色编号）
+    # ------------------------------------------------------------------
+    build_toc_tiddler(builder, toc_tree)
+
+    # ------------------------------------------------------------------
+    # 6. 首页与索引
     # ------------------------------------------------------------------
     build_index_tiddlers(builder, structure, headings, couplets, entity_tags,
                           entity_count, paragraphs, para_meta)

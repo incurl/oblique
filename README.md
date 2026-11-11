@@ -59,6 +59,23 @@ python3 scripts/verify_tiddlywiki.py   # 校验导出结果自洽
 | `实体/` | 规范名实体 | 3,108 | `实体/人名/林则徐` |
 | `章节/` | 书 / 卷 / 门类 / 条目导航 | 223 | `章节/1.3` |
 | — | 首页与索引 | 5 | `楹联丛话全编`、`实体索引` |
+| — | 侧栏目录（TOC） | 2 | `TableOfContents`、`样式/紫色编号` |
+
+### 紫色编号目录
+
+侧栏首位是「目录」标签页，用 TiddlyWiki **标准目录宏**
+（`<<toc-selective-expandable>>`）生成，层级按《楹联丛话全编》原编号：
+
+```
+0 作者简介
+1 楹联丛话
+  1.3 故事
+    1.3.1  尝闻纪文达师言：楹帖始于桃符……
+```
+
+紫色编号沿用语料原有编号体系（`structure.json` 的节点 id），不重新编号。
+目录节点之间用**标签**表达父子关系（标准机制所要求的），
+并用零填充的 `序` 字段保证 `1.3.2` 排在 `1.3.10` 之前。
 
 ### 标签体系
 
@@ -89,7 +106,7 @@ python3 scripts/verify_tiddlywiki.py   # 校验导出结果自洽
 
 ```bash
 python3 scripts/build_tiddlywiki.py
-# → tiddlywiki/oblique.html（约 7.7 MB）
+# → tiddlywiki/oblique.html（约 8.2 MB）
 
 # 指定 TiddlyWiki5 源码目录（默认自动查找，也可用环境变量 TIDDLYWIKI5）
 python3 scripts/build_tiddlywiki.py --tw /path/to/TiddlyWiki5
@@ -164,6 +181,6 @@ scripts/
   build_tiddlywiki.py     编译成单文件 HTML
 data/                     标注产物
 docs/                     预览页
-tiddlywiki/oblique.html   单文件 wiki（交付物，约 7.7 MB）
+tiddlywiki/oblique.html   单文件 wiki（交付物，约 8.2 MB）
 tiddlywiki/楹联丛话全编/  TiddlyWiki 导出（中间产物，不入版本库）
 ```

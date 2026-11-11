@@ -75,6 +75,20 @@ def tid_header_defects(path: Path) -> list[str]:
     return problems
 
 
+def parse_fields(path: Path) -> dict[str, str]:
+    """解析 .tid 头部，返回全部 name: value 字段。"""
+    raw = path.read_text(encoding="utf-8")
+    header = raw.split("\n\n", 1)[0]
+    fields: dict[str, str] = {}
+    for line in header.split("\n"):
+        if not line.strip() or line.startswith("#"):
+            continue
+        if ":" in line:
+            k, _, v = line.partition(":")
+            fields[k.strip()] = v.strip()
+    return fields
+
+
 def parse_tags(value: str) -> list[str]:
     """解析 tags 字段：空格分隔，`[[...]]` 包裹含空格的标签。"""
     out: list[str] = []
@@ -98,6 +112,7 @@ def main() -> int:
     titles: dict[str, Path] = {}
     dupes: list[str] = []
     all_tags: dict[str, list[str]] = {}
+    all_fields: dict[str, dict[str, str]] = {}
     bodies: dict[str, str] = {}
     malformed: list[tuple[str, str]] = []
     for p in sorted(tiddlers_dir.rglob("*.tid")):
@@ -109,6 +124,7 @@ def main() -> int:
             dupes.append(title)
         titles[title] = p
         all_tags[title] = tags
+        all_fields[title] = parse_fields(p)
         bodies[title] = text
 
     errors: list[str] = []
@@ -231,6 +247,90 @@ def main() -> int:
         errors.append(f"条目 tag 与正文实体不一致 {len(mismatch)} 例：{mismatch[:3]}")
     else:
         print(f"✓ 6. {checked} 个条目的实体 tag 与正文标注一致")
+
+    # ---- 7. 紫色编号目录（TiddlyWiki 标准 TOC 机制）----
+    toc_problems: list[str] = []
+
+    if "TableOfContents" not in titles:
+        toc_problems.append("缺少 TableOfContents 目录根 tiddler")
+    else:
+        toc_tags = all_tags.get("TableOfContents", [])
+        if "$:/tags/SideBar" not in toc_tags:
+            toc_problems.append("TableOfContents 未打 $:/tags/SideBar 标签（不会出现在侧栏）")
+        if "toc-selective-expandable" not in bodies.get("TableOfContents", ""):
+            toc_problems.append("TableOfContents 正文未调用标准 toc 宏")
+
+    # 目录节点：用 caption 字段承载紫色编号
+    toc_nodes = 0
+    for title in titles:
+        if not (title.startswith("章节/") or title.startswith("条目/")):
+            continue
+        fields = all_fields.get(title, {})
+        caption = fields.get("caption", "")
+        if not caption:
+            toc_problems.append(f"{title} 缺 caption 字段（目录中不显示紫色编号）")
+            continue
+        if '<span class="pn">' not in caption:
+            toc_problems.append(f"{title} 的 caption 未含紫色编号标记")
+        toc_nodes += 1
+
+    # 父子关系：子 tiddler 必须被打上父 tiddler 的标题标签。
+    # 父节点的 tiddler 标题由其紫色编号决定：段落 → 条目/<id>，其余 → 章节/<id>。
+    entry_ids = {t.split("/", 1)[1] for t in titles if t.startswith("条目/")}
+    orphan = 0
+    for title in titles:
+        if not (title.startswith("章节/") or title.startswith("条目/")):
+            continue
+        nid = title.split("/", 1)[1]
+        parent_id = nid.rsplit(".", 1)[0] if "." in nid else ""
+        if not parent_id:
+            # 顶层（书 / 作者简介）：应打 TableOfContents 标签
+            if "TableOfContents" not in all_tags.get(title, []):
+                orphan += 1
+            continue
+        parent_title = ("条目/" if parent_id in entry_ids else "章节/") + parent_id
+        if parent_title not in titles:
+            toc_problems.append(f"{title} 的父节点 {parent_title} 不存在")
+        elif parent_title not in all_tags.get(title, []):
+            orphan += 1
+
+    if orphan:
+        toc_problems.append(f"{orphan} 个目录节点未挂上父节点标签（TOC 层级会断）")
+    if toc_problems:
+        errors.append("目录有问题：" + "；".join(toc_problems[:5]))
+    else:
+        print(f"✓ 7. 紫色编号目录完整（{toc_nodes} 个节点，父子标签关系全部正确）")
+
+    # 排序：TOC 宏用 `sortan[序]` 排序，"序" 是零填充的紫色编号，
+    # 字典序即数值序。此处独立复算一遍，防止将来改动破坏顺序。
+    def _sortkey(value: str) -> tuple[int, ...]:
+        try:
+            return tuple(int(seg) for seg in value.split("."))
+        except ValueError:
+            return (0,)
+
+    sort_bad: list[str] = []
+    by_parent: dict[str, list[tuple[str, str]]] = {}
+    for title in titles:
+        if not (title.startswith("章节/") or title.startswith("条目/")):
+            continue
+        nid = title.split("/", 1)[1]
+        parent = nid.rsplit(".", 1)[0] if "." in nid else ""
+        key = all_fields.get(title, {}).get("序", "")
+        if not key:
+            sort_bad.append(f"{title} 缺「序」字段")
+            continue
+        by_parent.setdefault(parent, []).append((key, nid))
+    for parent, kids in by_parent.items():
+        # 同一父节点下，按「序」排序后应与按紫色编号排序一致
+        by_seq = [nid for _, nid in sorted(kids)]
+        by_num = [nid for _, nid in sorted(kids, key=lambda kv: _sortkey(kv[1]))]
+        if by_seq != by_num:
+            sort_bad.append(f"父 {parent or '(顶层)'}：按序={by_seq[:3]} 按号={by_num[:3]}")
+    if sort_bad:
+        errors.append(f"目录排序错误 {len(sort_bad)} 处：{sort_bad[:3]}")
+    else:
+        print(f"✓ 8. 目录排序正确（{len(by_parent)} 个父节点下，同级「序」与紫色编号一致）")
 
     # ---- 统计 ----
     kinds = Counter(t.split("/", 1)[0] if "/" in t else "根" for t in titles)
