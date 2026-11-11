@@ -12,6 +12,7 @@
     7. 紫色编号目录（章节/条目 的 caption 与父节点标签）完整
     8. 目录排序（零填充「序」字段）与紫色编号一致
     9. 正文里的筛选器参数（`filter:"…"`）括号配平
+    10. 每个标签都有同名 tiddler（否则标签胶囊显示 "Missing tiddler"）
 
 用法：
     python3 scripts/verify_tiddlywiki.py
@@ -361,6 +362,60 @@ def main() -> int:
         errors.append("正文里找不到任何 filter 参数（导出可能不完整）")
     else:
         print(f"✓ 9. 筛选器参数括号全部配平（{filter_count} 处）")
+
+    # ---- 10. 标签同名 tiddler（"Missing tiddler" 的根因）----
+    # TiddlyWiki 的标签胶囊用**标签名本身**查同名 tiddler 来判断存在 / 缺失
+    # （core/wiki/macros/tag.tid 的 `[<__tag__>is[missing]...]`，
+    #  is[missing] 只认真 tiddler，不认 shadow，见
+    #  core/modules/filters/is/missing.js）。
+    # 查不到同名 tiddler，标签就渲染成 missing，点进去只见一句
+    # "Missing tiddler …"（$:/language/MissingTiddler/Hint）。
+    #
+    # 这一项要求：**每个被使用的标签都必须有同名 tiddler**
+    # （锚点 tiddler 或本来就有）。
+    used_tags: set[str] = set()
+    for tags in all_tags.values():
+        used_tags.update(tags)
+    # 系统标签由 TiddlyWiki 核心/主题提供，不在本项目责任范围内
+    checkable = {t for t in used_tags if not t.startswith("$:/")}
+    without_page = sorted(t for t in checkable if t not in titles)
+    if without_page:
+        errors.append(f"有标签但无同名 tiddler {len(without_page)} 个"
+                      f"（标签会显示 Missing tiddler）：{without_page[:10]}")
+    else:
+        print(f"✓ 10. 全部 {len(checkable)} 个标签均有同名 tiddler"
+              f"（标签不会显示 Missing tiddler）")
+
+    # 锚点 tiddler 必须指向存在的 tiddler，且不得给自己打同名标签
+    anchor_bad: list[str] = []
+    anchor_selfref: list[str] = []
+    anchor_count = 0
+    for title, tags in all_tags.items():
+        if all_fields.get(title, {}).get("锚点") != "true":
+            continue
+        anchor_count += 1
+        target = all_fields.get(title, {}).get("指向", "")
+        if target not in titles:
+            anchor_bad.append(f"{title} → {target}")
+        if title in tags:
+            anchor_selfref.append(title)
+    if anchor_bad:
+        errors.append(f"锚点指向不存在的 tiddler {len(anchor_bad)} 个：{anchor_bad[:5]}")
+    if anchor_selfref:
+        errors.append(f"锚点给自己打了同名标签 {len(anchor_selfref)} 个"
+                      f"（会污染筛选结果）：{anchor_selfref[:5]}")
+    if not anchor_bad and not anchor_selfref:
+        print(f"✓ 10b. {anchor_count} 个锚点 tiddler 指向有效，且无自引用标签")
+
+    # 锚点正文不应再出现 "Missing tiddler" 字样（否则页面自身又会误导读者）
+    anchor_leak = [t for t, body in bodies.items()
+                   if all_fields.get(t, {}).get("锚点") == "true"
+                   and "Missing tiddler" in body]
+    if anchor_leak:
+        errors.append(f"锚点正文含 “Missing tiddler” 字样 {len(anchor_leak)} 个："
+                      f"{anchor_leak[:5]}")
+    else:
+        print("✓ 10c. 锚点正文无 “Missing tiddler” 残留")
 
     # ---- 统计 ----
     kinds = Counter(t.split("/", 1)[0] if "/" in t else "根" for t in titles)

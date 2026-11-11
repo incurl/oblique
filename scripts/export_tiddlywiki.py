@@ -16,12 +16,22 @@
         联语/<Cxxxx>.tid       每副联语一个 tiddler
         实体/<类型>/<名>.tid   每个规范名一个 tiddler
         章节/<编号>.tid        书 / 卷 / 门类 / 条目 导航
+        <标签>.tid             锚点 tiddler：与标签同名，见下
         <索引>.tid             首页、书目、实体索引、联语索引、体例说明
 
 映射约定：
     条目 → tiddler（含正文与所属联语链接）
     实体 → tag（`人名/林则徐`、`地点/扬州`、`典籍/蜀梼杌`…）
     归属 → tag（`楹联丛话`、`楹联丛话/故事`）
+
+锚点 tiddler：
+    TiddlyWiki 的标签胶囊用**标签名本身**查同名 tiddler 来判断「存在 / 缺失」
+    （core/wiki/macros/tag.tid 的 `[<__tag__>is[missing]]`）。查不到就把标签
+    渲染成 missing，点进去只会看到一句 "Missing tiddler …"。
+    本项目的实体标签是 `典籍/古格言`，真正的实体页却叫 `实体/典籍/古格言`，
+    名字对不上 → 标签全部显示为缺失。
+    修法是给每个标签补一个**与标签同名**的轻量锚点 tiddler，正文指向规范页；
+    锚点不打自己的标签名，也不打「实体」，因此 `[tag[…]]` 的筛选语义不变。
 
 校验：见 scripts/verify_tiddlywiki.py（用独立数据源交叉核对）。
 """
@@ -41,6 +51,17 @@ TID_RE = re.compile(r"[\\/:*?\"<>|\r\n\t]")
 
 # 目录根 tiddler：TiddlyWiki 标准 TOC 机制以它为标签根
 TOC_ROOT = "TableOfContents"
+
+# ---------------------------------------------------------------------------
+# 锚点 tiddler
+# ---------------------------------------------------------------------------
+
+# 锚点自用的标记标签。用独立标记而不是复用「实体」，
+# 否则 `[tag[实体]]` 的计数会被锚点污染（C2）。
+ANCHOR_TAG = "锚点"
+
+# 锚点 tiddler 的存放目录（**仅**是文件路径，标题仍是标签名本身）。
+ANCHOR_DIR = "锚点"
 
 
 def safe_filename(title: str) -> str:
@@ -117,6 +138,11 @@ TYPE_DESC = {
     "!": "天文", "?": "神祇/神话", "+": "生物", "{": "典籍",
     ":": "礼仪", "[": "刑法", "_": "思想概念", "#": "身份", "$": "数量",
 }
+
+# 实体类型的**类型名**（即上表取值的集合，18 个 + 「出处」）。
+# 实体 tiddler 打 `tags: 实体 <类型名>`，所以这些类型名本身也是标签；
+# 它们同样需要同名锚点，否则类型分类标签仍显示为 missing。
+ENTITY_TYPE_NAMES = frozenset(TYPE_PREFIX.values()) | {"出处"}
 
 
 # ---------------------------------------------------------------------------
@@ -279,7 +305,8 @@ class TiddlyWikiBuilder:
         self.tiddlers: dict[str, dict] = {}
         self.duplicate_titles: list[str] = []
 
-    def add(self, title: str, text: str, tags: list[str], fields: dict | None = None) -> None:
+    def add(self, title: str, text: str, tags: list[str], fields: dict | None = None,
+            anchor: bool = False) -> None:
         if title in self.tiddlers:
             self.duplicate_titles.append(title)
             return
@@ -290,7 +317,8 @@ class TiddlyWikiBuilder:
             if t and t not in seen:
                 seen.add(t)
                 unique_tags.append(t)
-        rec = {"title": title, "text": text, "tags": unique_tags, "fields": fields or {}}
+        rec = {"title": title, "text": text, "tags": unique_tags, "fields": fields or {},
+               "anchor": anchor}
         self.tiddlers[title] = rec
 
     def write(self) -> dict:
@@ -301,9 +329,16 @@ class TiddlyWikiBuilder:
         by_kind: Counter[str] = Counter()
         for title, rec in self.tiddlers.items():
             parts = title.split("/")
-            kind = parts[0] if len(parts) > 1 else "根"
-            sub = self.tiddlers_dir.joinpath(*parts[:-1]) if len(parts) > 1 else self.tiddlers_dir
             filename = safe_filename(parts[-1]) + ".tid"
+            if rec.get("anchor"):
+                # 锚点 tiddler 的**标题**必须与标签名一致，文件另存到
+                # tiddlers/锚点/ 下，以免与实体目录混在一起。
+                kind = ANCHOR_DIR
+                sub = self.tiddlers_dir.joinpath(ANCHOR_DIR, *parts[:-1])
+            else:
+                kind = parts[0] if len(parts) > 1 else "根"
+                sub = self.tiddlers_dir.joinpath(*parts[:-1]) if len(parts) > 1 \
+                    else self.tiddlers_dir
             path = sub / filename
             fields = dict(rec["fields"])
             if rec["tags"]:
@@ -476,6 +511,100 @@ def build_toc_tiddler(builder: TiddlyWikiBuilder, toc_tree: dict[str, dict]) -> 
         ".tc-table-of-contents .tc-toc-caption { letter-spacing: .02em; }\n"
     )
     builder.add("样式/紫色编号", css, ["$:/tags/Stylesheet"])
+
+
+# ---------------------------------------------------------------------------
+# 锚点 tiddler：让标签胶囊不再显示 "Missing tiddler"
+# ---------------------------------------------------------------------------
+
+
+def build_anchor_tiddlers(builder: TiddlyWikiBuilder,
+                          all_tags: set[str],
+                          entity_tags: list[str],
+                          entity_type: dict[str, str]) -> int:
+    """为每个「有标签但无同名 tiddler」的标签补一个同名锚点 tiddler。
+
+    背景：TiddlyWiki 的标签胶囊用**标签名本身**查同名 tiddler 来判断
+    「存在 / 缺失」——``core/wiki/macros/tag.tid`` 里写的是
+    ``[<__tag__>is[missing]then[tc-tag-missing]else[tc-tag-exists]]``，
+    而 ``is[missing]`` 走的是 ``core/modules/filters/is/missing.js`` 的
+    ``options.wiki.tiddlerExists(title)``，**只认真 tiddler，不认 shadow**。
+    标签名查不到同名 tiddler，胶囊就渲染成 missing，点进去只会看到
+    ``$:/language/MissingTiddler/Hint``（"Missing tiddler …"）。
+
+    本项目实体标签叫 ``典籍/古格言``，真正的实体页却叫
+    ``实体/典籍/古格言``——名字对不上，于是三千多个标签全显示为缺失。
+
+    修法：给每个标签补一个**与标签同名**的轻量锚点 tiddler，
+    正文指向规范页。**不重命名**现有实体 tiddler。
+
+    约束（见交接文档 §10）：
+
+    - 绝不覆盖已有 tiddler（``if title not in builder.tiddlers``）；
+    - 锚点**不给自己打标签**（自引用会污染 ``[tag[...]]`` 的筛选结果）；
+    - 锚点只打 ``ANCHOR_TAG`` 一个标记，便于识别与统计。
+    """
+    # 实体标签 → 规范页标题
+    entity_pages = {
+        tag: f"实体/{entity_type[tag]}/{tag.split('/', 1)[1]}"
+        for tag in entity_tags
+    }
+
+    # 类型名标签（实体 tiddler 打 `tags: 实体 <类型名>`）→ 实体索引的对应分组
+    type_pages = {name: "实体索引" for name in ENTITY_TYPE_NAMES}
+
+    # 候选标签 = 已用标签 + ANCHOR_TAG 本身。
+    # ANCHOR_TAG 是锚点自用的标记标签，锚点建好之后它也会变成「已用标签」，
+    # 所以必须一并纳入候选，否则它自己会显示成 missing。
+    candidates = set(all_tags) | {ANCHOR_TAG}
+
+    created = 0
+    for tag in sorted(candidates):
+        # 已有同名 tiddler 的标签本来就正常，不需要锚点
+        if tag in builder.tiddlers:
+            continue
+        # 系统标签（$:/…）是 TiddlyWiki 的机制标签，不能占用
+        if tag.startswith("$:/"):
+            continue
+
+        if tag in entity_pages:
+            target = entity_pages[tag]
+            kind = "实体"
+            note = f"{tag} 的规范页。"
+        elif tag in type_pages:
+            target = type_pages[tag]
+            kind = "类型"
+            note = f"{tag} 类实体的索引。"
+        elif tag == ANCHOR_TAG:
+            # 锚点自身的标记标签。它也必须有个同名 tiddler，
+            # 否则它自己会显示成 missing。
+            target = "体例说明"
+            kind = "标记"
+            note = "锚点 tiddler 的标记标签：凡本库自建的锚点页都挂这个标签。"
+        else:
+            # 结构 / 分类标签（书名、门类、联语类型……）没有独立页面，
+            # 指向首页，由标签胶囊的下拉面板列出实际条目。
+            target = "楹联丛话全编"
+            kind = "结构"
+            note = f"{tag} 的标签页。"
+
+        body = (
+            f"!{tag}\n\n"
+            f"{note}\n\n"
+            f"规范页：[[{target}]]\n\n"
+            "本页是''标签锚点''：TiddlyWiki 用标签名查找同名 tiddler 来判断"
+            "标签是否存在，缺少同名 tiddler 时，标签胶囊会被渲染成缺失样式，"
+            "点进去也只会看到一句提示。本页只负责让该标签可点击，"
+            "内容以规范页为准。\n"
+        )
+        # 锚点**不给自己打同名标签**（自引用会污染 [tag[...]] 的筛选结果）。
+        # 「锚点」这个标记标签自身也不例外，故它的锚点页不打任何标签。
+        tags = [] if tag == ANCHOR_TAG else [ANCHOR_TAG]
+        builder.add(tag, body, tags,
+                    fields={"锚点": "true", "指向": target, "类别": kind},
+                    anchor=True)
+        created += 1
+    return created
 
 
 def build_index_tiddlers(
@@ -900,7 +1029,18 @@ def main() -> None:
                           entity_count, paragraphs, para_meta)
 
     # ------------------------------------------------------------------
-    # 6. 写出
+    # 7. 锚点 tiddler（标签名同名页）
+    # ------------------------------------------------------------------
+    # 必须放在最后：此时所有 tiddler 都已登记，才能准确判断
+    # 「哪些标签还没有同名 tiddler」。
+    used_tags: set[str] = set()
+    for rec in builder.tiddlers.values():
+        used_tags.update(rec["tags"])
+    n_anchors = build_anchor_tiddlers(builder, used_tags, entity_tags, entity_type)
+    print(f"  锚点 tiddler {n_anchors} 个（与标签同名，消除 Missing tiddler）")
+
+    # ------------------------------------------------------------------
+    # 8. 写出
     # ------------------------------------------------------------------
     stats = builder.write()
     write_system_tiddlers(out_dir)
