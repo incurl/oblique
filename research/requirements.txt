@@ -1,0 +1,16 @@
+# 《楹联丛话全编》标注一致性度量 —— 运行依赖
+# Python 3.11（开发与验证环境为 3.13.5，代码不使用 3.12+ 专有语法）
+#
+# 安装：
+#   python -m venv .venv && source .venv/bin/activate
+#   pip install -r requirements.txt
+
+# 读取 schema.yaml
+PyYAML==6.0.2
+
+# 测试用的参考实现（仅 tests/ 需要；agreement.py 本身不依赖）
+#   krippendorff：Krippendorff α 的对照实现
+#   scipy：Wilcoxon / McNemar / binomtest 的对照实现
+# 缺失时 tests/ 中相关用例会 skip 而非 fail。
+krippendorff==0.8.1
+scipy==1.15.3

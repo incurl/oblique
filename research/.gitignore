@@ -1,0 +1,5 @@
+# 生成的报告产物（由 agreement.py 重建；论文定稿后应把真实实验产物一并归档）
+reports/
+__pycache__/
+*.py[cod]
+.venv/

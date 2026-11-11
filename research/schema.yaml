@@ -1,0 +1,339 @@
+# =============================================================================
+# schema.yaml —— 《楹联丛话全编》语义标注 schema
+#
+# 本文件是 agreement.py 的唯一标签集来源（single source of truth）。
+# 标注规范正文见 research/MANUSCRIPT.md §4
+# 上游标注规范见仓库根目录 SPEC_楹联语义标注.md
+#
+# 版本：yinglian-semantic-v1.1 / agreement-metrics-v1
+# 许可：CC-BY-4.0（标注规范与数据集）；MIT（脚本）
+# =============================================================================
+
+meta:
+  schema_version: "yinglian-semantic-v1.1"
+  metrics_version: "agreement-metrics-v1"
+  corpus: "楹联丛话全编"
+  corpus_author: "梁章钜 等"
+  corpus_dynasty: "清"
+  upstream_annotation_spec: "SPEC_楹联语义标注.md"
+  upstream_methodology: "BOOK_楹联语义标注方法论.md"
+  # 说明：type_code 与上游标记符号一一对应，本文件只做"符号 -> 语义名"的登记。
+  inherited_from: "shiji-kb（南京师范大学 李斌 团队《史记》知识库）—— 符号体系与 Purple Number 结构方法"
+  # 本文件登记的 type_code 顺序即为上游 PRIORITY 顺序（高优先级在前）。
+
+# -----------------------------------------------------------------------------
+# 一、实体类型（span 级标注单元）
+#   18 类直接继承自 shiji-kb 的 〖TYPE 内容〗 体系（symbol / name / 说明均照录，
+#   未作改动）；label_name 为本文为统计与论文表述所加的中文名。
+#   corpus_reference_counts 为 data/entities.json 的实测值（用于正文 Table 1 的溯源）。
+# -----------------------------------------------------------------------------
+entity_types:
+  - code: "{"
+    label_name: "典籍"
+    symbol: "〖{…}〗"
+    description: "书名号内部的书籍/文献题名；书名号本身属原文，保留在标记之外。"
+    priority: 100
+    corpus_reference_counts: 1350
+  - code: "="
+    label_name: "地名"
+    symbol: "〖=…〗"
+    description: "专名地名；名胜、宫观、书院、廨署等均归此类；普通名词不得入典。"
+    priority: 80
+    corpus_reference_counts: 2509
+  - code: "@"
+    label_name: "人名"
+    symbol: "〖@…〗"
+    description: "人物专名；撰者、署名人、评点者、出处诗人共用此类型，角色由关系区分。"
+    priority: 70
+    corpus_reference_counts: 1572
+  - code: "&"
+    label_name: "氏族"
+    symbol: "〖&…〗"
+    description: "姓氏门第（如「林氏」）。"
+    priority: 65
+    corpus_reference_counts: 65
+  - code: "?"
+    label_name: "神祇"
+    symbol: "〖?…〗"
+    description: "神祇、仙道人物；与地名（庙宇）冲突时地名优先。"
+    priority: 60
+    corpus_reference_counts: 157
+  - code: "~"
+    label_name: "族群"
+    symbol: "〖~…〗"
+    description: "族群称谓。"
+    priority: 55
+    corpus_reference_counts: 21
+  - code: ";"
+    label_name: "官职"
+    symbol: "〖;…〗"
+    description: "官职、爵位、科第衔名。"
+    priority: 50
+    corpus_reference_counts: 1984
+  - code: "^"
+    label_name: "名物制度"
+    symbol: "〖^…〗"
+    description: "名物、器制、典制词（含楹联术语族：楹联、桃符、集句、楹帖等）。"
+    priority: 45
+    corpus_reference_counts: 1411
+  - code: "!"
+    label_name: "天文"
+    symbol: "〖!…〗"
+    description: "天文、地理天象词。"
+    priority: 40
+    corpus_reference_counts: 46
+  - code: "["
+    label_name: "刑法"
+    symbol: "〖[…]〗"
+    description: "刑罚名目。"
+    priority: 38
+    corpus_reference_counts: 4
+  - code: ":"
+    label_name: "礼仪"
+    symbol: "〖:…〗"
+    description: "祭祀、仪典名目。"
+    priority: 35
+    corpus_reference_counts: 60
+  - code: "◆"
+    label_name: "朝代邦国"
+    symbol: "〖◆…〗"
+    description: "朝代、政权、邦国名。"
+    priority: 30
+    corpus_reference_counts: 280
+  - code: "%"
+    label_name: "时间"
+    symbol: "〖%…〗"
+    description: "年号、纪年、时辰、时代标记；年号归入此类。"
+    priority: 25
+    corpus_reference_counts: 1884
+  - code: "#"
+    label_name: "身份"
+    symbol: "〖#…〗"
+    description: "身份称谓（进士、太夫人、书生等）。"
+    priority: 20
+    corpus_reference_counts: 551
+  - code: "•"
+    label_name: "器物"
+    symbol: "〖•…〗"
+    description: "器物、玩物。"
+    priority: 15
+    corpus_reference_counts: 62
+  - code: "_"
+    label_name: "思想概念"
+    symbol: "〖_…〗"
+    description: "抽象概念、伦理德目。"
+    priority: 12
+    corpus_reference_counts: 83
+  - code: "+"
+    label_name: "生物"
+    symbol: "〖+…〗"
+    description: "动植物名。"
+    priority: 10
+    corpus_reference_counts: 249
+  - code: "$"
+    label_name: "数量"
+    symbol: "〖$…]〗"
+    description: "数量、数目。"
+    priority: 8
+    corpus_reference_counts: 847
+
+# -----------------------------------------------------------------------------
+# 二、关系类型（triple 级标注单元）
+#   方向：head --relation_type--> tail，方向固定，不得调换。
+#   endpoint_types 列出该关系允许的端点类型（entity code 或 "联语"）。
+# -----------------------------------------------------------------------------
+relation_types:
+  - name: "撰联"
+    description: "某人撰写/书写/题写某副联语。"
+    direction: "人名 -> 联语"
+    endpoint_types: ["@", "联语"]
+    inherited: false
+  - name: "题于"
+    description: "某副联语题写/悬挂于某地（名胜、廨署、园亭、桥梁）。"
+    direction: "联语 -> 地名"
+    endpoint_types: ["联语", "="]
+    inherited: false
+  - name: "用典"
+    description: "联语用某典故或引某书/某家诗句。"
+    direction: "联语 -> 典籍/引书"
+    endpoint_types: ["联语", "{", "@"]
+    inherited: false
+  - name: "评骘"
+    description: "某人对某副联语加以品评、臧否、定品第。"
+    direction: "人名 -> 联语"
+    endpoint_types: ["@", "联语"]
+    inherited: false
+  - name: "因袭"
+    description: "某副联语因袭、蹈袭另一副联语（后者为前者所本）。"
+    direction: "联语 -> 联语"
+    endpoint_types: ["联语", "联语"]
+    inherited: false
+  - name: "辑录"
+    description: "某编纂者把某副联语收入其联话/联录。"
+    direction: "人名 -> 联语"
+    endpoint_types: ["@", "联语"]
+    inherited: false
+
+# -----------------------------------------------------------------------------
+# 三、属性类型（每副联语一个取值，attribute unit）
+#   measurement: nominal | ordinal
+#   ordinal_levels 由低到高排列；weighted κ 的权重按该次序定义。
+# -----------------------------------------------------------------------------
+attribute_types:
+  - name: "联类"
+    measurement: "nominal"
+    unit: "联语"
+    single_valued: true
+    description: "联语类别（春联/挽联/寿联/庙联/集句/巧对等）。"
+    values: ["集句", "联语", "庙联", "挽联", "春联", "寿联", "贺联", "门联", "堂联", "巧对", "会馆联"]
+    corpus_reference_counts:
+      集句: 613
+      联语: 579
+      庙联: 475
+      挽联: 312
+      春联: 292
+      寿联: 204
+      贺联: 168
+      门联: 146
+      堂联: 114
+      巧对: 108
+      会馆联: 9
+  - name: "品第"
+    measurement: "ordinal"
+    unit: "联语"
+    single_valued: true
+    description: "评点者给出的品第等级（由低到高）。"
+    values: ["下下", "下", "中", "上", "上上"]
+  - name: "时代层级"
+    measurement: "ordinal"
+    unit: "联语"
+    single_valued: true
+    description: "联语所属时代层级（由早到晚）。"
+    values: ["唐以前", "宋元", "明", "清"]
+
+# -----------------------------------------------------------------------------
+# 四、单元定义（agreement.py 的匹配口径）
+# -----------------------------------------------------------------------------
+units:
+  entity:
+    definition: "span (char_start, char_end, type, canonical_id)"
+    match_strict: "char_start 与 char_end 完全相同 且 type 相同"
+    match_relaxed: "跨度重叠 >= 1 字符 且 type 相同"
+    canonical_compared_separately: true
+    canonical_id_format: "{type_code}:{canonical_name}，例 P:林则徐"
+  relation:
+    definition: "triple (head_id, relation_type, tail_id)"
+    match_strict: "head 与 tail 的 span 键与 relation_type 全部相同"
+    match_relaxed: "head 与 tail 按 canonical_id 匹配，relation_type 相同"
+  attribute:
+    definition: "单值类别 (unit_id, attribute_name) -> value"
+    match: "value 相同"
+
+# -----------------------------------------------------------------------------
+# 五、度量参数（论文 §4 与代码口径一一对应）
+# -----------------------------------------------------------------------------
+metrics:
+  bootstrap:
+    resamples: 1000
+    seed: 42
+    method: "percentile"
+    unit: "unit_id（按单元重采样）"
+  significance:
+    paired_bootstrap_resamples: 10000
+    seed: 42
+    mcnemar: true
+    forbidden: "不得对 F1 使用非配对 t 检验"
+  ordinal_weight:
+    primary: "quadratic"
+    sensitivity: "linear"
+    rationale: "品第/时代层级为有序变量，默认二次权重为主，线性权重作为敏感性检查。"
+  agreement_estimator:
+    two_annotators: "Cohen's kappa"
+    many_annotators_fully_crossed: "Fleiss' kappa"
+    missing_cells_or_single_annotated_units: "Krippendorff's alpha"
+    single_annotated_unit_policy: "若存在仅单标的单元，必须报告 alpha，并说明该事实。"
+  prevalence_bias:
+    source: "Byrt, Bishop & Carlin (1993)；epiR 实现口径"
+    binary_pi: "PI = |N11 - N22| / N"
+    binary_bi: "BI = |N1. - N.1| / N"
+    multiclass_generalisation: "对每一候选类二值化后取众数类的 PI/BI；同时给出各类最大值。"
+  fce:
+    enabled: true
+    citation: "Fleiss, Cohen & Everitt (1969)"
+    note: "κ 接近 1.0 且 n 较小时同时报告渐近 SE 与由其导出的 CI；与 bootstrap CI 不一致时两者并列报告。"
+  timing:
+    unit: "每 1000 字符所需分钟数"
+    statistic: "中位数 + IQR"
+    paired_test: "Wilcoxon 符号秩检验（配对）"
+    effect_size: ["Cliff's delta", "matched-pairs rank-biserial r"]
+    confound: "标注者存在学习效应；两种条件采用拉丁方式的反平衡顺序以缓解，但不可完全消除。"
+
+# -----------------------------------------------------------------------------
+# 六、错误分类体系（错误分析的受控词表）
+#   priority 大者先命中；一次分歧只归入一类，保证计数可加。
+# -----------------------------------------------------------------------------
+error_taxonomy:
+  - code: "漏标"
+    priority: 1
+    description: "一方标注，另一方在该跨度/该三元组上完全未标注。"
+  - code: "类型混淆"
+    priority: 2
+    description: "跨度相同，实体类型不同。"
+  - code: "边界切分歧义"
+    priority: 3
+    description: "类型相同、指向同一实体，但字符边界不一致（重叠但不等长）。"
+  - code: "同实异指"
+    priority: 4
+    description: "字面不同、canonical_id 相同：同一实体用了不同写法（别名/字号）。"
+  - code: "异实同指"
+    priority: 5
+    description: "字面相同、canonical_id 不同：同名异人/同名异书。"
+  - code: "典故误溯"
+    priority: 6
+    description: "用典关系的头/尾所指的典故或引书不一致。"
+  - code: "评点归属错误"
+    priority: 7
+    description: "评骘关系的评者（头端）不一致，或品第取值不一致。"
+
+# -----------------------------------------------------------------------------
+# 七、报告产物契约（agreement.py 的输出目录结构）
+# -----------------------------------------------------------------------------
+reports_contract:
+  kappa_by_type: "kappa_by_type.csv"
+  kappa_by_type_canonical: "kappa_by_type_canonical.csv"
+  ci: "ci.json"
+  summary: "SUMMARY.md"
+  confusion_matrices: "confusion_matrices/"
+  f1_by_type: "f1_by_type.csv"
+  relation_f1: "relation_f1.csv"
+  timing: "timing.csv"
+  significance: "significance.csv"
+  error_taxonomy: "error_taxonomy.csv"
+  disagreements: "disagreement_cases.md"
+
+# -----------------------------------------------------------------------------
+# 八、语料规模基准（data/ 下实测值，正文 Table 1 / Table 5 的溯源锚点）
+# -----------------------------------------------------------------------------
+corpus_reference:
+  source_file: "楹联丛话全编.txt"
+  lines: 2588
+  chars_with_whitespace: 332547
+  chars_without_whitespace: 327700
+  annotated_paragraphs: 2289        # data/楹联丛话全编.tagged.md 中以 [编号] 开头的行
+  structure_paragraph_nodes: 2253  # data/structure.json 中 kind == "paragraph" 的节点
+  entity_mentions: 13135
+  canonical_entities: 2979
+  couplets: 3020
+  couplet_chars_total: 72585
+  couplets_equal_length: 3000
+  couplet_equal_length_ratio: 0.9934
+  couplets_with_source_attribution: 168
+  distinct_source_attributions: 125
+  couplets_with_high_confidence_author: 91
+  couplets_with_place_hint: 1182
+  distinct_place_hints: 383
+  distinct_books: 9
+  source_attribution_forms:
+    人名: 146
+    X句缩写: 13
+    文献题名: 9
