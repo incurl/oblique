@@ -318,7 +318,7 @@ TiddlyWiki 核心**没有** `<<list>>` 宏。
 所以凡是要按编号排序，一律用零填充的 `序` 字段（`0001.0003.0010`）：
 
 ```
-<<list-links filter:"[tag[楹联丛话/故事]sort[序]">>
+<<list-links filter:"[tag[楹联丛话/故事]sort[序]]">>
 ```
 
 TOC 宏则直接用自然排序 `sortan[序]`。
@@ -348,6 +348,7 @@ TOC 宏则直接用自然排序 `sortan[序]`。
 ✓ 6. 2,254 个条目的实体 tag 与正文标注一致
 ✓ 7. 紫色编号目录完整（2,477 个节点，父子标签关系全部正确）
 ✓ 8. 目录排序正确（224 个父节点下，同级「序」与紫色编号一致）
+✓ 9. 筛选器参数括号全部配平（3,332 处）
 ```
 
 第 6 项尤其重要：它逐条比对"正文里标了什么"与"tag 里挂了什么"，
@@ -355,6 +356,9 @@ TOC 宏则直接用自然排序 `sortan[序]`。
 
 第 7、8 项针对目录：逐个节点核对"父 tiddler 的标题"这个标签有没有挂上，
 以及同一父节点下"序"与紫色编号的次序是否一致。
+
+第 9 项针对宏参数：把正文里每一处 `filter:"…"` 取出来做括号配平。
+它挡住的是**静默错误**——见 §7.10。
 
 ### 7.7 紫色编号目录（TOC）
 
@@ -418,6 +422,56 @@ TiddlyWiki 的 `.tid` 反序列化器用 `text.split(/\r?\n\r?\n/mg)` 切分头�
 
 因此 `verify_tiddlywiki.py` 增加了第 0 项检查：头部每行都必须是合法字段，
 且文件必须含有 `\n\n`。这一项能挡住整类"静默丢数据"的错误。
+
+### 7.10 筛选器少一个 `]` 也会静默通过（踩过的坑）
+
+TiddlyWiki 解析筛选器分两步：`parseFilter` 负责语法解析，
+`compileFilter` 再把结果编译成函数。问题在于 **`compileFilter` 把
+`parseFilter` 抛出的异常整个捕获**，替换成一个只会返回错误文本的桩函数：
+
+```js
+// core/modules/filters.js
+try {
+    var operation = this.parseFilter(filterString,options);
+} catch(e) {
+    return function() { return "Filter error: " + e.message; };
+}
+```
+
+后果是：一个括号不配平的筛选器**不会让导出失败、也不会让打包失败**，
+只在最终页面上多渲染一行红字 `Filter error: Missing [ in filter expression`。
+
+本项目就踩了：`章节/*` 与 `实体/*` 的 `<<list-links filter:"[tag[..]sort[序]">>`
+少写一个 `]`，3,331 个 tiddler 全部带错，而 `export_tiddlywiki.py` /
+`verify_tiddlywiki.py` / `build_tiddlywiki.py` 三步**全都报成功**。
+
+两道防线：
+
+1. **静态**：`verify_tiddlywiki.py` 第 9 项把正文里所有 `filter:"…"`
+   取出来做括号配平（深度必须归零且中途不为负）。这条检查不依赖 TiddlyWiki，
+   在导出阶段就能拦住。
+2. **动态**：怀疑渲染有问题时，用 Node 无头渲染抓输出里的 `Filter error`，
+   并给 `wiki.parseFilter` 打补丁记录抛异常的表达式：
+
+```js
+var wiki = $tw.wiki, fails = [], origPF = wiki.parseFilter;
+wiki.parseFilter = function() {
+  try { return origPF.apply(this, arguments); }
+  catch(e) { fails.push(String(e)); throw e; }   // 坏筛选器会走到这里
+};
+var node = wiki.makeTranscludeWidget("章节/1.3",
+      {importPageMacros: true, mode: "block", document: $tw.fakeDocument});
+var c = $tw.fakeDocument.createElement("div");
+node.render(c, null);
+console.log(c.innerHTML.indexOf("Filter error"), fails);
+```
+
+三点注意事项：
+
+- **必须在渲染之后看**：`parseFilter` 是渲染时由 `compileFilter` 调用的，
+  光读 `.tid` 源码、或只做静态检查都不会让构建失败。
+- 补丁要打在 `wiki` 实例上（`this.parseFilter`），打在别处的副本上不会被调用。
+- 全量扫很快：8,612 个 tiddler 逐个渲染 + 检查约 19 秒，发布前跑一次很划算。
 
 ---
 

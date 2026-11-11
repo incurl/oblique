@@ -9,6 +9,9 @@
     4. 条目 tiddler 覆盖全部源段落
     5. 联语 tiddler 覆盖全部联语
     6. 每个条目的实体 tag 与正文标注一致
+    7. 紫色编号目录（章节/条目 的 caption 与父节点标签）完整
+    8. 目录排序（零填充「序」字段）与紫色编号一致
+    9. 正文里的筛选器参数（`filter:"…"`）括号配平
 
 用法：
     python3 scripts/verify_tiddlywiki.py
@@ -331,6 +334,33 @@ def main() -> int:
         errors.append(f"目录排序错误 {len(sort_bad)} 处：{sort_bad[:3]}")
     else:
         print(f"✓ 8. 目录排序正确（{len(by_parent)} 个父节点下，同级「序」与紫色编号一致）")
+
+    # 筛选器静态检查：TiddlyWiki 的 `parseFilter` 遇到不闭合的括号会抛
+    # "Missing [ in filter expression"，但 `compileFilter` 把它吞成一个
+    # 报错的桩函数——页面只多出一行红字，构建/导出本身全都"成功"。
+    # 所以必须在导出侧做一次括号配平，否则这类错误会静默随包发布。
+    FILTER_ARG_RE = re.compile(r'filter(?::|=)"([^"]*)"')
+    filter_bad: list[str] = []
+    filter_count = 0
+    for title, text in bodies.items():
+        for m in FILTER_ARG_RE.finditer(text):
+            filter_count += 1
+            depth = 0
+            for ch in m.group(1):
+                if ch == "[":
+                    depth += 1
+                elif ch == "]":
+                    depth -= 1
+                    if depth < 0:
+                        break
+            if depth != 0:
+                filter_bad.append(f"{title}：filter:\"{m.group(1)}\"")
+    if filter_bad:
+        errors.append(f"筛选器括号不配平 {len(filter_bad)} 处：{filter_bad[:3]}")
+    elif filter_count == 0:
+        errors.append("正文里找不到任何 filter 参数（导出可能不完整）")
+    else:
+        print(f"✓ 9. 筛选器参数括号全部配平（{filter_count} 处）")
 
     # ---- 统计 ----
     kinds = Counter(t.split("/", 1)[0] if "/" in t else "根" for t in titles)

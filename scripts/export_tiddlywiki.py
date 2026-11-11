@@ -837,7 +837,7 @@ def main() -> None:
         lines.append("")
         lines.append("!! 出现于")
         lines.append("")
-        lines.append(f'<<list-links filter:"[tag[{tag}]sort[序]">>')
+        lines.append(f'<<list-links filter:"[tag[{tag}]sort[序]]">>')
         lines.append("")
         crefs = couplet_entity_refs.get(tag, [])
         if crefs:
@@ -876,7 +876,7 @@ def main() -> None:
         lines.append("")
         lines.append("!! 条目")
         lines.append("")
-        lines.append(f'<<list-links filter:"[tag[{tag}]sort[序]">>')
+        lines.append(f'<<list-links filter:"[tag[{tag}]sort[序]]">>')
         lines.append("")
         chapter_tags = ["章节", book, tag]
         # 目录树：打上父节点标签，使标准 TOC 宏能据此建立父子关系

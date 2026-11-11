@@ -190,7 +190,7 @@ python3 scripts/verify_tiddlywiki.py     # 校验导出（不通过就不要提�
 ```
 格式校验 5/5 通过   ← lint_text_integrity.py
 领域校验 4/4 通过   ← 见 SKILL_05
-导出校验 9/9 通过   ← verify_tiddlywiki.py
+导出校验 10/10 通过  ← verify_tiddlywiki.py
 打包校验 通过       ← build_tiddlywiki.py
 ```
 
