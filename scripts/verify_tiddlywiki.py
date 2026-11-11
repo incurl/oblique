@@ -52,6 +52,29 @@ def parse_tid(path: Path) -> tuple[str, str, list[str]]:
     return title, text, tags
 
 
+def tid_header_defects(path: Path) -> list[str]:
+    """检查 .tid 的头是否合法，返回问题描述列表。
+
+    TiddlyWiki 的 deserializer（boot.js 的 tiddlerdeserializer/tid）用
+    `text.split(/\\r?\\n\\r?\\n/mg)` 切分头部与正文：
+      - 头部每行必须是 `name: value` 字段（`#` 开头为注释）
+      - 若正文第一行不含冒号，它会连同正文一起被当成字段吞掉
+
+    所以必须存在真正的空行，且头部不能混入正文的行。
+    """
+    raw = path.read_text(encoding="utf-8")
+    problems: list[str] = []
+    if "\n\n" not in raw:
+        return ["头与正文之间缺少空行（正文会被当成字段解析）"]
+    header = raw.split("\n\n", 1)[0]
+    for line in header.split("\n"):
+        if not line.strip() or line.startswith("#"):
+            continue
+        if ":" not in line:
+            problems.append(f"头部含非字段行：{line[:40]}")
+    return problems
+
+
 def parse_tags(value: str) -> list[str]:
     """解析 tags 字段：空格分隔，`[[...]]` 包裹含空格的标签。"""
     out: list[str] = []
@@ -76,7 +99,11 @@ def main() -> int:
     dupes: list[str] = []
     all_tags: dict[str, list[str]] = {}
     bodies: dict[str, str] = {}
+    malformed: list[tuple[str, str]] = []
     for p in sorted(tiddlers_dir.rglob("*.tid")):
+        defects = tid_header_defects(p)
+        if defects:
+            malformed.append((str(p.relative_to(tiddlers_dir)), defects[0]))
         title, text, tags = parse_tid(p)
         if title in titles:
             dupes.append(title)
@@ -89,6 +116,12 @@ def main() -> int:
     print(f"wiki 目录：{wiki_dir}")
     print(f"tiddler 总数：{len(titles)}")
     print()
+
+    # ---- 0. .tid 文件结构 ----
+    if malformed:
+        errors.append(f".tid 结构不合法 {len(malformed)} 个，例：{malformed[:3]}")
+    else:
+        print("✓ 0. 全部 .tid 的头/正文分隔正确（正文不会被当成字段吞掉）")
 
     # ---- 1. 重复标题 ----
     if dupes:

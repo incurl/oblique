@@ -84,15 +84,26 @@ python3 scripts/verify_tiddlywiki.py   # 校验导出结果自洽
 
 ### 构建单文件 wiki
 
-导出目录本身即是标准 TiddlyWiki 目录（含 `tiddlywiki.info` 与 `tiddlers/`），
-用任意 TiddlyWiki 5 即可打包或启动服务：
+`scripts/build_tiddlywiki.py` 把导出目录编译成**单个自包含 HTML**，
+双击即可在浏览器打开，无需服务器、无需联网：
 
 ```bash
-# 用本地的 TiddlyWiki5 打包成单个 HTML
+python3 scripts/build_tiddlywiki.py
+# → tiddlywiki/oblique.html（约 7.7 MB）
+
+# 指定 TiddlyWiki5 源码目录（默认自动查找，也可用环境变量 TIDDLYWIKI5）
+python3 scripts/build_tiddlywiki.py --tw /path/to/TiddlyWiki5
+```
+
+脚本会在打包后自动核对：单文件里是否装下了全部 tiddler、
+`$:/SiteTitle` / `$:/DefaultTiddlers` 是否生效、是否带上了中文语言包。
+
+也可以直接用 TiddlyWiki 5 打包，或启动本地服务浏览：
+
+```bash
 node /path/to/TiddlyWiki5/tiddlywiki.js tiddlywiki/楹联丛话全编 \
      --output dist --build index
 
-# 或者启动本地服务浏览
 node /path/to/TiddlyWiki5/tiddlywiki.js tiddlywiki/楹联丛话全编 --listen
 ```
 
@@ -148,9 +159,11 @@ scripts/
   annotate_yinglian.py    生成 Markdown 与 JSON
   lint_text_integrity.py  完整性校验
   render_yinglian.py      HTML 预览
-  export_tiddlywiki.py    导出 TiddlyWiki
+  export_tiddlywiki.py    导出 TiddlyWiki（.tid 目录）
   verify_tiddlywiki.py    导出结果校验
+  build_tiddlywiki.py     编译成单文件 HTML
 data/                     标注产物
 docs/                     预览页
-tiddlywiki/楹联丛话全编/  TiddlyWiki 导出（tiddlers/ + tiddlywiki.info）
+tiddlywiki/oblique.html   单文件 wiki（交付物，约 7.7 MB）
+tiddlywiki/楹联丛话全编/  TiddlyWiki 导出（中间产物，不入版本库）
 ```

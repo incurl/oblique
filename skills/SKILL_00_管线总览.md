@@ -176,7 +176,7 @@ python3 scripts/verify_tiddlywiki.py     # 校验导出（不通过就不要提�
 
 | 项 | 值 |
 |---|---|
-| tiddler 总数 | 8,610 |
+| tiddler 总数 | 8,614（含 4 个系统 tiddler） |
 | 条目 tiddler | 2,254 |
 | 联语 tiddler | 3,020 |
 | 实体 tiddler | 3,108 |
@@ -190,7 +190,8 @@ python3 scripts/verify_tiddlywiki.py     # 校验导出（不通过就不要提�
 ```
 格式校验 5/5 通过   ← lint_text_integrity.py
 领域校验 4/4 通过   ← 见 SKILL_05
-导出校验 6/6 通过   ← verify_tiddlywiki.py
+导出校验 7/7 通过   ← verify_tiddlywiki.py
+打包校验 通过       ← build_tiddlywiki.py
 ```
 
 **任何改动后，这三组数字都必须仍然成立，否则不许提交。**

@@ -56,7 +56,11 @@ def write_tid(path: Path, title: str, text: str, fields: dict[str, str]) -> None
 
     格式（见 TiddlyWiki5 boot/boot.js 的 tiddlerdeserializer/tid）：
       - 第一段是 `name: value` 字段，每行一个，`#` 开头为注释
-      - 空行之后是正文
+      - **空行之后**才是正文
+
+    注意：头与正文之间必须有一个真正的空行（两个换行符）。
+    deserializer 用 `text.split(/\\r?\\n\\r?\\n/mg)` 切分，
+    若少了这个空行，正文第一行会被当成字段解析而丢失。
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [f"title: {escape_field(title)}"]
@@ -65,7 +69,8 @@ def write_tid(path: Path, title: str, text: str, fields: dict[str, str]) -> None
             continue
         lines.append(f"{k}: {escape_field(str(v))}")
     body = text if text.endswith("\n") else text + "\n"
-    path.write_text("\n".join(lines) + "\n" + body, encoding="utf-8")
+    # 头与正文之间：两个换行符 = 一个空行
+    path.write_text("\n".join(lines) + "\n\n" + body, encoding="utf-8")
 
 
 def build_tags(tag: str) -> str:
@@ -759,6 +764,7 @@ def main() -> None:
     # 6. 写出
     # ------------------------------------------------------------------
     stats = builder.write()
+    write_system_tiddlers(out_dir)
     write_wiki_info(out_dir, stats)
 
     print(f"输出目录：{out_dir}")
@@ -779,6 +785,38 @@ def main() -> None:
           f" {'✓' if exported_couplets == len(couplets) else '！不一致'}")
 
 
+# ---------------------------------------------------------------------------
+# 站点配置（系统 tiddler）
+# ---------------------------------------------------------------------------
+
+SITE_TITLE = "《楹联丛话全编》语义标注库"
+SITE_SUBTITLE = "条目为 tiddler，实体为 tag"
+DEFAULT_TIDDLER = "楹联丛话全编"
+LANGUAGE = "zh-Hans"
+
+# 系统 tiddler：标题 → 正文
+SYSTEM_TIDDLERS: dict[str, str] = {
+    "$:/SiteTitle": SITE_TITLE,
+    "$:/SiteSubtitle": SITE_SUBTITLE,
+    "$:/DefaultTiddlers": DEFAULT_TIDDLER,
+    "$:/language": f"$:/languages/{LANGUAGE}",
+}
+
+
+def write_system_tiddlers(out_dir: Path) -> None:
+    """写出站点级系统 tiddler。
+
+    这些 tiddler 决定单文件 wiki 的站点标题、默认首页与界面语言。
+    文件名可以任意取，标题以 .tid 的 `title:` 字段为准。
+    """
+    sys_dir = out_dir / "tiddlers" / "system"
+    sys_dir.mkdir(parents=True, exist_ok=True)
+    for title, text in SYSTEM_TIDDLERS.items():
+        # 文件名用标题去掉 `$:/` 后的部分，非法字符替换为 _
+        stem = re.sub(r"[^\w\u4e00-\u9fff.-]", "_", title.replace("$:/", ""))
+        write_tid(sys_dir / f"{stem}.tid", title, text, {})
+
+
 def write_wiki_info(out_dir: Path, stats: dict) -> None:
     """写出 tiddlywiki.info（编辑器/服务端加载用）。"""
     info = {
@@ -788,7 +826,7 @@ def write_wiki_info(out_dir: Path, stats: dict) -> None:
             "tiddlywiki/vanilla",
             "tiddlywiki/snowwhite",
         ],
-        "languages": [],
+        "languages": [LANGUAGE],
         "build": {
             "index": [
                 "--render", "$:/core/save/all", "index.html", "text/plain",

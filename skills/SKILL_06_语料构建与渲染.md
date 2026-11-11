@@ -332,18 +332,38 @@ TiddlyWiki 核心**没有** `<<list>>` 宏。
 
 ### 7.7 打包与浏览
 
-导出目录本身就是标准 TiddlyWiki 目录（含 `tiddlywiki.info` 与 `tiddlers/`）：
+`scripts/build_tiddlywiki.py` 把导出目录编译成**单个自包含 HTML**：
 
 ```bash
-# 打包成单个 HTML
+python3 scripts/build_tiddlywiki.py
+# → tiddlywiki/oblique.html（约 7.7 MB，8,614 个 tiddler）
+```
+
+脚本会自动查找 TiddlyWiki5 源码目录（`--tw` 参数或 `TIDDLYWIKI5` 环境变量），
+打包后核对单文件里是否装下全部 tiddler、站点配置是否生效、是否带中文语言包。
+
+也可以直接用 TiddlyWiki 5 打包，或启动本地服务浏览：
+
+```bash
 node /path/to/TiddlyWiki5/tiddlywiki.js tiddlywiki/楹联丛话全编 \
      --output dist --build index
 
-# 启动本地服务浏览
 node /path/to/TiddlyWiki5/tiddlywiki.js tiddlywiki/楹联丛话全编 --listen
 ```
 
-单文件约 7.5 MB（8,610 个 tiddler），浏览器直接打开即可。
+单文件浏览器直接打开即可，无需服务器、无需联网。
+
+### 7.8 `.tid` 的头/正文分隔（踩过的坑）
+
+TiddlyWiki 的 `.tid` 反序列化器用 `text.split(/\r?\n\r?\n/mg)` 切分头与正文，
+**头与正文之间必须有一个真正的空行**。
+
+漏掉这个空行时，`parseFields` 会把正文第一行当成 `name: value` 字段解析，
+于是**正文的第一行被静默吞掉**——不报错，只是内容丢失。
+本项目 8,613 个 `.tid` 文件全部踩了这个坑（每副联语的上联、每个条目的标题行都没了）。
+
+因此 `verify_tiddlywiki.py` 增加了第 0 项检查：头部每行都必须是合法字段，
+且文件必须含有 `\n\n`。这一项能挡住整类"静默丢数据"的错误。
 
 ---
 

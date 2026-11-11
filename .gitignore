@@ -38,3 +38,8 @@ go.work.sum
 # Python
 __pycache__/
 *.py[cod]
+
+# TiddlyWiki 导出目录：.tid 中间产物，可由 scripts/export_tiddlywiki.py 重建
+tiddlywiki/*
+# 单文件 wiki 是交付物，跟随仓库（docs/index.html 同例）
+!tiddlywiki/oblique.html

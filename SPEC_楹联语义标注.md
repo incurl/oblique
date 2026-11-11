@@ -33,6 +33,7 @@ scripts/
   render_yinglian.py              生成静态 HTML 预览
   export_tiddlywiki.py            导出 TiddlyWiki（条目=tiddler，实体=tag）
   verify_tiddlywiki.py            用独立数据源交叉校验导出结果
+  build_tiddlywiki.py             编译成单文件 HTML（oblique.html）
 data/
   楹联丛话全编.tagged.md          标注正文（约 1.2 MB）
   entities.json                   实体索引
@@ -41,9 +42,10 @@ data/
 docs/
   index.html                      静态预览（约 2.2 MB）
 tiddlywiki/
-  楹联丛话全编/                   TiddlyWiki 导出（8,610 个 tiddler）
+  oblique.html                    单文件 wiki（交付物，约 7.7 MB）
+  楹联丛话全编/                   TiddlyWiki 导出（8,614 个 tiddler，中间产物）
     tiddlywiki.info               编辑器 / 服务端配置
-    tiddlers/                     条目 / 联语 / 实体 / 章节 / 索引
+    tiddlers/                     条目 / 联语 / 实体 / 章节 / 索引 / system
 ```
 
 复现：
@@ -54,6 +56,7 @@ python3 scripts/lint_text_integrity.py
 python3 scripts/render_yinglian.py
 python3 scripts/export_tiddlywiki.py
 python3 scripts/verify_tiddlywiki.py
+python3 scripts/build_tiddlywiki.py
 ```
 
 ---
@@ -399,7 +402,13 @@ tags: 条目 楹联丛话 楹联丛话/故事 人名/纪昀 地点/成都
 - **空行之后**才是正文；
 - `tags` 用空格分隔，含空格的标签用 `[[...]]` 包裹。
 
-### 8.4 三条硬性约定
+**头与正文之间的空行是硬性要求**：反序列化器用
+`text.split(/\r?\n\r?\n/mg)` 切分，若少了这个空行，
+`parseFields` 会把正文第一行当成 `name: value` 字段，
+**正文第一行被静默吞掉**——不报错，只是内容丢失。
+校验器的第 0 项专门检查这一点。
+
+### 8.4 四条硬性约定
 
 1. **链接语法方向**：TiddlyWiki 是 `[[显示文本|目标]]`，
    与本项目标注消歧语法 `〖别名|规范名〗` **顺序相反**，转换时必须显式换位。
@@ -407,13 +416,38 @@ tags: 条目 楹联丛话 楹联丛话/故事 人名/纪昀 地点/成都
    不允许竖线，须改用 `<$link to="...">显示</$link>`。
 3. **没有 `<<list>>` 宏**：TiddlyWiki 核心未提供该宏，
    列举标签下的 tiddler 应用 `<<list-links filter:"[tag[...]sort[编号]]">>`。
+4. **`.tid` 头与正文之间必须有空行**：见 8.3，否则正文首行被吞。
 
-### 8.5 校验
+### 8.5 站点配置与单文件编译
+
+站点级配置以系统 tiddler 形式随导出目录一起提供
+（`tiddlers/system/`，文件名可任意，标题以 `title:` 字段为准）：
+
+| tiddler | 作用 |
+|---|---|
+| `$:/SiteTitle` | 浏览器标题栏与侧栏标题 |
+| `$:/SiteSubtitle` | 副标题 |
+| `$:/DefaultTiddlers` | 打开时默认显示的 tiddler |
+| `$:/language` | 界面语言（`$:/languages/zh-Hans`） |
+
+`tiddlywiki.info` 的 `languages` 字段列出语言包，
+这样单文件里会带上中文界面。
+
+`scripts/build_tiddlywiki.py` 调用 `tiddlywiki.js --build index`
+（`tiddlywiki.info` 的 `index` 目标用 `$:/core/save/all` 模板），
+产出 `tiddlywiki/oblique.html`——一个自包含的单文件，
+双击即可打开，无需服务器、无需联网。
+
+打包后自动核对：单文件里是否装下全部 tiddler、站点配置是否生效、
+是否带上语言包。
+
+### 8.6 校验
 
 `scripts/verify_tiddlywiki.py` 用**独立于导出器**的数据源
 （`structure.json`、`couplets.json`）交叉核对导出结果：
 
 ```
+✓ 0. 全部 .tid 的头/正文分隔正确（正文不会被当成字段吞掉）
 ✓ 1. 无重复标题
 ✓ 2. 全部 21,999 处内部链接均可解析
 ✓ 3. 3,322 个实体标签均有对应 tiddler
@@ -456,6 +490,7 @@ python3 scripts/lint_text_integrity.py
 python3 scripts/render_yinglian.py
 python3 scripts/export_tiddlywiki.py
 python3 scripts/verify_tiddlywiki.py
+python3 scripts/build_tiddlywiki.py
 ```
 
 如果新增的是容易与普通词混淆的地名，请同时加入 `AMBIGUOUS_PLACES` 或在 `find_candidates()` 中增加上下文约束。
