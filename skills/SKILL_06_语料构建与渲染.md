@@ -279,7 +279,7 @@ tags: 条目 楹联丛话 楹联丛话/故事 人名/纪昀 地点/成都
 - **空行之后**才是正文；
 - `tags` 用空格分隔，含空格的标签用 `[[...]]` 包裹。
 
-### 7.5 八个容易踩的坑
+### 7.5 九个容易踩的坑
 
 #### 坑一：链接语法方向相反
 
@@ -366,14 +366,20 @@ core/wiki/macros/tag.tid
 3. 文件路径可以和标题不同（如放在 `tiddlers/锚点/` 下），**标题必须与标签名一致**；
 4. 用独立标记标签（`锚点`）而不是复用 `实体`，免得 `[tag[实体]]` 的计数被污染。
 
-**锚点页的正文用筛选器动态列出相关内容**，而不是写死一堆链接：
+**锚点页的正文用筛选器动态列出相关内容**，而不是写死一堆链接。
+清单**一项一行**——用 `<$genesis>` 生成真正的 `<ul>` / `<li>`，
+否则一长串链接会挤在同一行，读起来是一团：
 
 ```
 !! 相关条目（1）
 
+<$genesis $type="ul" class="tc-anchor-list">
 <$list filter="[tag[典籍/古格言]prefix[条目/]sort[序]]">
+<$genesis $type="li" class="tc-anchor-item">
   <$link to=<<currentTiddler>>><$view field="caption"/></$link>
+</$genesis>
 </$list>
+</$genesis>
 ```
 
 分类清单的形状固定，校验器可以逐条复算：
@@ -414,9 +420,42 @@ core/wiki/macros/tag.tid
 需要列举标签下的 tiddler 时，直接用原生构件：
 
 ```
+<$genesis $type="ul" class="tc-anchor-list">
 <$list filter="[tag[人名/林则徐]sort[序]]">
+<$genesis $type="li" class="tc-anchor-item">
   <$link to=<<currentTiddler>>><$view field="title"/></$link>
+</$genesis>
 </$list>
+</$genesis>
+```
+
+注意 `<$genesis>` 的 `$type` 必须写**字面量**（`$type="ul"`）。
+写成变量（`$type=<<__type__>>`）会有同样的解析问题——属性右值 `>>`
+的后一个 `>` 被并进属性值，整个标签泄漏成纯文本。
+
+#### 坑九：裸 `<$list>` 的多个链接会挤在一行
+
+`<$list>` 默认把每个迭代项直接拼在同一个段落里：
+
+```
+<a …>条目/1.1.1</a><a …>条目/1.1.2</a><a …>条目/1.1.3</a>
+```
+
+一长串没法读。要**一项一行**，得自己套 `<$genesis $type="li">`：
+
+```
+<$genesis $type="ul" class="tc-anchor-list">
+<$list filter="[…]">
+<$genesis $type="li" class="tc-anchor-item">…</$genesis>
+</$list>
+</$genesis>
+```
+
+配套 CSS（去掉项目符号、缩进对齐、收紧行距）：
+
+```
+.tc-anchor-list { list-style: none; margin: .25em 0 .75em 1.25em; padding: 0; }
+.tc-anchor-list .tc-anchor-item { margin: 0 0 .15em 0; padding: 0; line-height: 1.5; }
 ```
 
 校验器里要加一条对应检查，否则这个问题会再次悄悄回归：
@@ -448,6 +487,7 @@ missing = [t for t in used if not t.startswith("$:/") and t not in titles]
 ✓ 10b. 3,369 个锚点 tiddler 指向有效，且无自引用标签
 ✓ 10c. 锚点正文无 “Missing tiddler” 残留
 ✓ 10d. 4,057 个锚点筛选器都能选出存在的 tiddler（且排序字段有效）
+✓ 10e. 4,057 个锚点清单均一项一行（<li> 包裹）
 ```
 
 第 6 项尤其重要：它逐条比对"正文里标了什么"与"tag 里挂了什么"，
@@ -465,6 +505,7 @@ missing = [t for t in used if not t.startswith("$:/") and t not in titles]
 10c 确认锚点正文本身没有残留 “Missing tiddler” 字样，
 10d 则用 Python 独立复算锚点里的每个筛选器：
 必须真的能选出存在的 tiddler，且排序字段在这些 tiddler 上确实存在。
+10e 检查每个清单都套了 `<li>`——即**一项一行**，见 §7.5 坑九。
 
 ### 7.7 紫色编号目录（TOC）
 

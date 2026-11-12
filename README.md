@@ -90,12 +90,18 @@ TiddlyWiki 的**标签胶囊**用**标签名本身**去查同名 tiddler，
 | 类型（`典籍`） | 该类型下的全部实体 + 实体索引链接 |
 | 结构（`楹联丛话`、`楹联丛话/序`、`挽联`） | 相关章节、相关条目、相关联语、相关实体 |
 
-每个小节都标注条数，空的小节自动省略：
+每个小节都标注条数，空的小节自动省略；清单**一项一行**
+（用 `<$genesis>` 生成真正的 `<ul>` / `<li>`，
+否则一长串链接会挤在同一行）：
 
 ```
 !! 相关条目（1）
 
-<$list filter="[tag[典籍/古格言]prefix[条目/]sort[序]]">…</$list>
+<$genesis $type="ul" class="tc-anchor-list">
+<$list filter="[tag[典籍/古格言]prefix[条目/]sort[序]]">
+<$genesis $type="li" class="tc-anchor-item">…</$genesis>
+</$list>
+</$genesis>
 ```
 
 锚点 tiddler 存在 `tiddlers/锚点/` 目录下（**仅是文件路径**，
@@ -185,6 +191,7 @@ node /path/to/TiddlyWiki5/tiddlywiki.js tiddlywiki/楹联丛话全编 --listen
 ✓ 10b. 3,369 个锚点 tiddler 指向有效，且无自引用标签
 ✓ 10c. 锚点正文无 “Missing tiddler” 残留
 ✓ 10d. 4,057 个锚点筛选器都能选出存在的 tiddler（且排序字段有效）
+✓ 10e. 4,057 个锚点清单均一项一行（<li> 包裹）
 ```
 
 > TiddlyWiki 导出是**派生视图**，不替代标注 Markdown；

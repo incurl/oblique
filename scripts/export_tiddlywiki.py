@@ -510,6 +510,17 @@ def build_toc_tiddler(builder: TiddlyWikiBuilder, toc_tree: dict[str, dict]) -> 
         "}\n"
         ".tc-table-of-contents .toc-item-selected > a > .tc-toc-caption .pn { color: #7a4b8a; }\n"
         ".tc-table-of-contents .tc-toc-caption { letter-spacing: .02em; }\n"
+        # 锚点页的相关清单：一项一行，缩进对齐，去掉多余的行距
+        ".tc-anchor-list {\n"
+        "  list-style: none;\n"
+        "  margin: .25em 0 .75em 1.25em;\n"
+        "  padding: 0;\n"
+        "}\n"
+        ".tc-anchor-list .tc-anchor-item {\n"
+        "  margin: 0 0 .15em 0;\n"
+        "  padding: 0;\n"
+        "  line-height: 1.5;\n"
+        "}\n"
     )
     builder.add("样式/紫色编号", css, ["$:/tags/Stylesheet"])
 
@@ -525,23 +536,32 @@ def build_toc_tiddler(builder: TiddlyWikiBuilder, toc_tree: dict[str, dict]) -> 
 # 而 `class=<<__class__>>` 在 __class__ 为空串时，属性右值 `>>` 的后一个 `>`
 # 会被解析器并进属性值，导致整个标签泄漏成纯文本、列表渲染为空。
 # （实测 TiddlyWiki 5.5.0-prerelease：`<<list-links filter:"[…]">>` 输出为空。）
-# 所以这里直接用原生构件 <$list> + <$link>，不依赖那个宏。
+# 所以这里直接用原生构件 <$list> + <$genesis> + <$link>，不依赖那个宏。
 def related_list(flt: str, field: str = "caption") -> str:
-    """生成一段「相关 tiddler」列表。
+    """生成一段「相关 tiddler」列表，**每项独占一行**。
 
     flt 是筛选器表达式。显示文字优先取 ``field`` 指定的字段
     （条目 / 章节用 caption，实体用 规范名），字段不存在时退回 title。
 
-    两个必须注意的写法细节（实测 TiddlyWiki 5.5.0-prerelease）：
+    行结构用 <$genesis> 生成真正的 ``<ul>`` / ``<li>``——
+    裸 <$list> 的多个链接会挤在同一行里（``<a>…</a><a>…</a>``），
+    读起来是一长串。套一层 ``<li>`` 才是一行一项。
+
+    三个必须注意的写法细节（实测 TiddlyWiki 5.5.0-prerelease）：
 
     - **不要给 ``<$list>`` 起 ``variable``**。一旦改名，列表项的
       ``currentTiddler`` 上下文就丢了，``{{!!title}}`` 与
       ``<<currentTiddler>>`` 全部变空，链接渲染成 missing。
     - 链接目标用 ``<<currentTiddler>>``，不要用 ``{{!!title}}``——
       后者在列表上下文里取到的是**当前**（锚点）tiddler 的 title。
+    - ``<$genesis>`` 的 ``$type`` 要写成**字面量**（``$type="ul"``）。
+      若写成变量（``$type=<<__type__>>``），属性右值 ``>>`` 的后一个 ``>``
+      同样会被并进属性值，整个标签泄漏成纯文本。
     """
     return (
+        "<$genesis $type=\"ul\" class=\"tc-anchor-list\">"
         "<$list filter=\"" + flt + "\">"
+        "<$genesis $type=\"li\" class=\"tc-anchor-item\">"
         "<$link to=<<currentTiddler>>>"
         "<$let tv-wikilinks=\"no\">"
         "<$transclude field=\"" + field + "\">"
@@ -549,7 +569,9 @@ def related_list(flt: str, field: str = "caption") -> str:
         "</$transclude>"
         "</$let>"
         "</$link>"
+        "</$genesis>"
         "</$list>"
+        "</$genesis>"
     )
 
 

@@ -460,11 +460,11 @@ git --no-pager diff --stat
 
 | 文件 | 改动 |
 |---|---|
-| `scripts/export_tiddlywiki.py` | 新增 `ANCHOR_TAG` / `ANCHOR_DIR` 常量、`related_list()` 与 `build_anchor_tiddlers()` 函数；`TiddlyWikiBuilder.add()` 增加 `anchor` 参数，`write()` 把锚点落到 `tiddlers/锚点/` 目录；`main()` 在全部 tiddler 登记完毕后调用建锚点 |
-| `scripts/verify_tiddlywiki.py` | 新增第 10 / 10b / 10c / 10d 项校验 |
+| `scripts/export_tiddlywiki.py` | 新增 `ANCHOR_TAG` / `ANCHOR_DIR` 常量、`related_list()` 与 `build_anchor_tiddlers()` 函数；`TiddlyWikiBuilder.add()` 增加 `anchor` 参数，`write()` 把锚点落到 `tiddlers/锚点/` 目录；`main()` 在全部 tiddler 登记完毕后调用建锚点；锚点清单用 `<$genesis>` 生成 `<ul>`/`<li>`（一项一行），并加 `tc-anchor-list` / `tc-anchor-item` 样式 |
+| `scripts/verify_tiddlywiki.py` | 新增第 10 / 10b / 10c / 10d / 10e 项校验 |
 | `README.md` | 补「标签锚点」一节 + tiddler 模型表加 `锚点/` 行 + 校验输出 |
 | `SPEC_楹联语义标注.md` | 新增 §8.3「三名关系」与 §8.4「锚点页的正文」，后续小节重新编号 |
-| `skills/SKILL_06_语料构建与渲染.md` | 新增「坑六 / 坑七 / 坑八」+ 校验输出 |
+| `skills/SKILL_06_语料构建与渲染.md` | 新增「坑六 / 坑七 / 坑八 / 坑九」+ 校验输出 |
 | `docs/HANDOFF_实体tag-missing修复.md` | 本文：状态改为已修复、§11 问题清单结清、§12 索引更正、本节 |
 
 ### 14.2 锚点是怎么建的
@@ -480,23 +480,31 @@ git --no-pager diff --stat
    - 每个小节标注条数，空的小节自动省略；
 4. 锚点只挂 `锚点` 一个标记标签，**绝不挂自己的同名标签**（否则 `[tag[…]]` 筛选会多出锚点本身）。
 
-### 14.3 实现中踩到的两个 TiddlyWiki 坑（已写进 SPEC §8.4 / SKILL_06 坑七·坑八）
+### 14.3 实现中踩到的三个 TiddlyWiki 坑（已写进 SPEC §8.4 / SKILL_06 坑七·八·九）
 
 | 坑 | 现象 | 规避 |
 |---|---|---|
 | `<$list>` 起 `variable` | 列表项的 `currentTiddler` 上下文丢失，链接全变 `tc-tiddlylink-missing` | 不给 `<$list>` 起 `variable`；链接目标用 `<<currentTiddler>>` 而非 `{{!!title}}` |
-| `<<list-links>>` 宏 | `class=<<__class__>>` 在 `__class__` 为空时，属性右值 `>>` 的后一个 `>` 被并进属性值，整个标签泄漏成纯文本，列表渲染为空 | 改用原生 `<$list>` + `<$link>` 构件 |
+| `<$genesis>` 的 `$type` 写成变量 | 属性右值 `>>` 的后一个 `>` 被并进属性值，整个标签泄漏成纯文本 | `$type` 写字面量（`$type="ul"` / `$type="li"`） |
+| `<<list-links>>` 宏 | `class=<<__class__>>` 在 `__class__` 为空时同样触发上述解析问题，列表渲染为空 | 改用原生 `<$list>` + `<$genesis>` + `<$link>` 构件 |
+
+**清单一项一行**：裸 `<$list>` 的多个链接会挤在同一行（`<a>…</a><a>…</a>`），
+所以每项都套一层 `<$genesis $type="li">`，外面再包 `<$genesis $type="ul">`，
+并配 `tc-anchor-list` / `tc-anchor-item` 两个 CSS 类（去项目符号、缩进对齐、收紧行距）。
 
 实测确认（用 TiddlyWiki 自身的 `core/ui/Components/tag-link` 与正文渲染）：
 
-| 锚点 | 渲染大小 | 链接数 | `tc-tiddlylink-missing` |
-|---|---|---|---|
-| `典籍/古格言` | 1 KB | 2 | **0** |
-| `楹联丛话/序` | 0.6 KB | 3 | **0** |
-| `典籍` | 123 KB | 902 | **0** |
-| `楹联丛话` | 238 KB | 2,125 | **0** |
-| `实体` | 400 KB | 3,109 | **0** |
-| `锚点` | 382 KB | 3,369 | **0** |
+| 锚点 | 渲染大小 | `<li>` 行数 | 链接数 | `tc-tiddlylink-missing` |
+|---|---|---|---|---|
+| `典籍/古格言` | 1 KB | 1 | 2 | **0** |
+| `楹联丛话/序` | 1 KB | 2 | 3 | **0** |
+| `典籍` | 151 KB | 901 | 902 | **0** |
+| `楹联丛话` | 305 KB | 2,124 | 2,125 | **0** |
+| `实体` | 400 KB | 3,108 | 3,109 | **0** |
+| `锚点` | 382 KB | 3,368 | 3,369 | **0** |
+
+（链接数 = `<li>` 行数 + 1，多出来的那一个是末尾的「规范页 / 首页 / 索引」链接，
+它不属于清单。）
 
 ### 14.4 验证结果
 
@@ -515,6 +523,7 @@ git --no-pager diff --stat
 ✓ 10b. 3,369 个锚点 tiddler 指向有效，且无自引用标签
 ✓ 10c. 锚点正文无 “Missing tiddler” 残留
 ✓ 10d. 4,057 个锚点筛选器都能选出存在的 tiddler（且排序字段有效）
+✓ 10e. 4,057 个锚点清单均一项一行（<li> 包裹）
 全部校验通过 ✓
 ```
 

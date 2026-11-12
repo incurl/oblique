@@ -460,6 +460,27 @@ def main() -> int:
         print(f"✓ 10d. {anchor_filter_count} 个锚点筛选器都能选出存在的 tiddler"
               f"（且排序字段有效）")
 
+    # 锚点的「相关清单」必须**一项一行**：每个条目都要套在 <li> 里，
+    # 否则一长串链接会挤在同一行，读起来是一团。
+    # 这里检查每个锚点的每个 <$list> 是否紧跟着 <$genesis $type="li">。
+    anchor_rowspan_bad: list[str] = []
+    anchor_rowspan_ok = 0
+    for title, body in bodies.items():
+        if all_fields.get(title, {}).get("锚点") != "true":
+            continue
+        # 逐个 <$list ...>…</$list> 片段
+        for m in re.finditer(r"<\$list filter=\"[^\"]*\">(.*?)</\$list>", body, re.S):
+            seg = m.group(1)
+            if '<$genesis $type="li"' not in seg:
+                anchor_rowspan_bad.append(f"{title}: <$list> 内没有 <li> 包裹")
+            else:
+                anchor_rowspan_ok += 1
+    if anchor_rowspan_bad:
+        errors.append(f"锚点清单未做到一项一行 {len(anchor_rowspan_bad)} 处："
+                      f"{anchor_rowspan_bad[:5]}")
+    else:
+        print(f"✓ 10e. {anchor_rowspan_ok} 个锚点清单均一项一行（<li> 包裹）")
+
     # ---- 统计 ----
     kinds = Counter(t.split("/", 1)[0] if "/" in t else "根" for t in titles)
     print()

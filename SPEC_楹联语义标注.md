@@ -432,19 +432,36 @@ OK: text integrity verified.
 | `联语/` | `来源` | 联语**没有** `序` 字段，用它指向来源条目的编号 |
 | `实体/` | `规范名` | 实体页的规范名字段 |
 
-**两个必须遵守的写法约束**（实测 TiddlyWiki 5.5.0-prerelease）：
+**一项一行**：清单用 `<$genesis>` 生成真正的 `<ul>` / `<li>`。
+裸 `<$list>` 的多个链接会挤在同一行里（`<a>…</a><a>…</a>`），
+读起来是一长串；套一层 `<li>` 才是一行一项。
+
+```
+<$genesis $type="ul" class="tc-anchor-list">
+<$list filter="[tag[典籍/古格言]prefix[条目/]sort[序]]">
+<$genesis $type="li" class="tc-anchor-item">
+  <$link to=<<currentTiddler>>><$view field="caption"/></$link>
+</$genesis>
+</$list>
+</$genesis>
+```
+
+**三个必须遵守的写法约束**（实测 TiddlyWiki 5.5.0-prerelease）：
 
 1. **不要给 `<$list>` 起 `variable`**。一旦改名，列表项的 `currentTiddler`
    上下文就丢了，`{{!!title}}` 与 `<<currentTiddler>>` 全部变空，
    链接会渲染成 `tc-tiddlylink-missing`。
    链接目标要用 `<<currentTiddler>>`，不能用 `{{!!title}}`——
    后者在列表上下文里取到的是**当前**（锚点）tiddler 的 title。
-2. **不要用核心的 `<<list-links>>` 宏**。它内部是
+2. **`<$genesis>` 的 `$type` 要写字面量**（`$type="ul"`）。
+   若写成变量（`$type=<<__type__>>`），属性右值 `>>` 的后一个 `>`
+   同样会被并进属性值，整个标签泄漏成纯文本。
+3. **不要用核心的 `<<list-links>>` 宏**。它内部是
    `<$genesis $type=<<__type__>> class=<<__class__>>`，
    而 `class=<<__class__>>` 在 `__class__` 为空串时，
    属性右值 `>>` 的后一个 `>` 会被解析器并进属性值，
    导致整个标签泄漏成纯文本、列表渲染为空。
-   这里直接用原生构件 `<$list>` + `<$link>`，不依赖那个宏。
+   这里直接用原生构件 `<$list>` + `<$genesis>` + `<$link>`，不依赖那个宏。
 
 **锚点页的其它约定**：
 
@@ -484,7 +501,7 @@ tags: 条目 楹联丛话 楹联丛话/故事 人名/纪昀 地点/成都
 **正文第一行被静默吞掉**——不报错，只是内容丢失。
 校验器的第 0 项专门检查这一点。
 
-### 8.6 六条硬性约定
+### 8.6 七条硬性约定
 
 1. **链接语法方向**：TiddlyWiki 是 `[[显示文本|目标]]`，
    与本项目标注消歧语法 `〖别名|规范名〗` **顺序相反**，转换时必须显式换位。
@@ -493,12 +510,13 @@ tags: 条目 楹联丛话 楹联丛话/故事 人名/纪昀 地点/成都
 3. **没有 `<<list>>` 宏**：TiddlyWiki 核心未提供该宏。
    列举标签下的 tiddler 应用 `<<list-links filter:"[tag[...]sort[编号]]">>`；
    但该宏在 `__class__` 为空时渲染为空（见 8.4），
-   锚点页改用原生 `<$list>` + `<$link>` 构件。
+   锚点页改用原生 `<$list>` + `<$genesis>` + `<$link>` 构件。
 4. **`.tid` 头与正文之间必须有空行**：见 8.5，否则正文首行被吞。
 5. **每个标签都要有同名 tiddler**：见 8.3，否则标签胶囊显示为缺失样式，
    点进去只有一句 "Missing tiddler …"。
 6. **列表里不要给 `<$list>` 起 `variable`**：见 8.4，否则 `currentTiddler`
    上下文丢失，链接全部变成 missing。
+7. **锚点清单要一项一行**：见 8.4，链接挤在一行里没法读。
 
 ### 8.7 站点配置与单文件编译
 
@@ -571,6 +589,7 @@ tags: 条目 楹联丛话 楹联丛话/故事 人名/纪昀 地点/成都
 ✓ 10b. 3,369 个锚点 tiddler 指向有效，且无自引用标签
 ✓ 10c. 锚点正文无 “Missing tiddler” 残留
 ✓ 10d. 4,057 个锚点筛选器都能选出存在的 tiddler（且排序字段有效）
+✓ 10e. 4,057 个锚点清单均一项一行（<li> 包裹）
 ```
 
 ---
