@@ -14,7 +14,8 @@
 | `examples/` | 合成演示夹具（`gold.jsonl` / `ann_a.jsonl` / `ann_b.jsonl` / `baseline.jsonl`） |
 | `reports/` | 度量报告输出目录 |
 | `numbers_map.md` | 论文表格单元格 → 报告文件的逐格映射 |
-| `MANUSCRIPT.md` | 论文正文（Markdown） |
+| `MANUSCRIPT.md` | 论文正文（Markdown）；§8 为单文件 TiddlyWiki 知识库部署一章 |
+| `TABLES.md` | 论文表格 T1–T6（可直接粘贴） |
 
 ## 一条命令复现
 
@@ -77,6 +78,22 @@ reports/
 * 自助法固定种子（`schema.yaml` → `metrics.bootstrap.seed`，默认 42）；
 * 所有迭代按 key 排序；浮点求和用 `math.fsum`（对排序后的序列），不依赖字典插入顺序；
 * `tests/test_agreement.py::TestDeterminism` 断言同一输入两次运行产出**逐字节一致**。
+
+## 论文 §8：单文件 TiddlyWiki 知识库部署
+
+本目录的度量代码对应论文 §5；论文 §8 描述的知识库部署由**仓库根目录**的脚本承担：
+
+```bash
+cd ..   # 仓库根目录
+python3 scripts/annotate_yinglian.py       # 上游：生成标注产物
+python3 scripts/lint_text_integrity.py     # 反演校验（只加标记、不改原文）
+python3 scripts/export_tiddlywiki.py       # 导出为 tiddler 目录（11,985 个）
+python3 scripts/build_tiddlywiki.py --tw /path/to/TiddlyWiki5   # 编译为单文件
+python3 scripts/verify_tiddlywiki.py       # 独立校验（14 项，全部通过）
+```
+
+产物：`tiddlywiki/oblique.html`（11.70 MB，双击即开，无需服务器与网络）。
+「导出 → 编译」链路可重建，且重建结果与提交版本**逐字节一致**。
 
 ## 许可
 

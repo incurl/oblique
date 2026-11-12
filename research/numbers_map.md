@@ -79,13 +79,23 @@
 |---|---|---|
 | T5 各字段名、类型、说明 | `schema.yaml` → `units` / `corpus_reference` 与 `README.md` 输入格式说明 | ✅ 已填（字段定义不依赖实验结果） |
 
+### Table 6（单文件 TiddlyWiki 知识库部署）
+
+| 论文位置 | 来源 | 定位方式 | 回填状态 |
+|---|---|---|---|
+| T6-a 产物规模 | `scripts/verify_tiddlywiki.py` 输出 + `tiddlywiki/oblique.html` 文件属性 | 直接读取 | ✅ 已填（实测） |
+| T6-b tiddler 类别分布 | `scripts/verify_tiddlywiki.py` 的「tiddler 分布」段 | 直接读取 | ✅ 已填（实测） |
+| T6-c 部署验证结果 | `scripts/verify_tiddlywiki.py` 的 14 项 ✓ 校验 | 逐项对应 | ✅ 已填（实测） |
+| T6-d 未测量指标 | —— | —— | ⬜ 留占位符 `[WIKI_USERS]` / `[WIKI_SEARCH_LATENCY]` / `[WIKI_LOAD_TIME]` |
+
 ## 三、正文散见的数值
 
 | 论文位置 | 报告文件 | 定位方式 | 回填状态 |
 |---|---|---|---|
 | §5 各阶段耗时占比 | `reports/timing.csv` | 按 `condition` 定位后自行换算 | ⬜ 待填（需补记各阶段起止时间戳） |
 | §6.3 的 8 条分歧案例 | `reports/disagreement_cases.md` | 按案例序号定位 | ⬜ 待填（需补 `adjudication` 与 `rule` 字段） |
-| §8 案例研究的计数 | `data/couplets.json` / `data/entities.json` | 见 §8 各小节的"数据来源"标注 | ✅ 已填（均为语料实测统计） |
+| §9 案例研究的计数 | `data/couplets.json` / `data/entities.json` | 见 §9 各小节的"数据来源"标注 | ✅ 已填（均为语料实测统计） |
+| §8 部署的技术参数（tiddler 数、体积、链接数等） | `scripts/verify_tiddlywiki.py` 输出、`tiddlywiki/oblique.html` 属性 | 见 T6-a / T6-b / T6-c | ✅ 已填（实测） |
 
 ## 四、当前不可填的项（需实验完成后回填）
 

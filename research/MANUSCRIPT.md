@@ -16,7 +16,7 @@
 
 ## Abstract
 
-Yingtong (couplet-talk) is a late-imperial Chinese genre recording couplets with their authors, sites of inscription, allusive sources, and critical appraisals. Liang Zhangju's Qing collection *Yinglian Conghua Quanbian* has never been structurally processed, despite holding rich evidence for couplet history. This paper builds on the knowledge-modelling paradigm of the Shiji Knowledge Base (Purple Numbers, type-tagged entities, domain validation), but reworks the ontology for couplet-talk. The 18-type entity inventory is inherited unchanged; the paper **adds** a couplet layer (the couplet as the atomic unit), six relation types, and three attributes (*couplet class, evaluative grade, period tier*), and argues that four properties of the genre — antithetical structure, allusive reference, graded appraisal, and unstable segmentation — make that ontology non-transferable. Methodologically, it specifies a human-in-the-loop pipeline (rule-based pre-annotation, uncertainty-first selection, adjudication, stratified audit) and releases an MIT-licensed script implementing Cohen's kappa, Fleiss' kappa, Krippendorff's alpha, weighted kappa, Byrt et al.'s prevalence and bias indices, and the Fleiss–Cohen–Everitt asymptotic standard error, plus strict and relaxed F1 and paired tests. Validation against the reference `krippendorff` and `scipy` packages across 37 unit tests yields exact agreement for nominal and ordinal alpha and for the exact Wilcoxon p-value. The corpus comprises 332,547 characters, 2,289 annotated paragraphs, 3,020 couplets, and 13,135 entity mentions; 3,000 couplets (99.34%) have equal upper- and lower-line lengths, and 168 carry recoverable source attributions. **This paper reports no unmeasured agreement statistics**: kappa, F1, and timing results remain placeholders until human annotation is complete, while a `numbers_map.md` contract traces every figure to a report cell.
+Yingtong (couplet-talk) is a late-imperial Chinese genre recording couplets with their authors, sites, sources, and appraisals. Liang Zhangju's Qing collection *Yinglian Conghua Quanbian* has never been structurally processed, despite rich evidence for couplet history. This paper builds on the Shiji Knowledge Base's modelling paradigm (Purple Numbers, type-tagged entities, domain validation), but reworks it for couplet-talk. The 18-type entity inventory is inherited unchanged; the paper **adds** a couplet layer (the couplet as the atomic unit), six relation types, and three attributes (*couplet class, evaluative grade, period tier*), and argues that four genre properties — antithetical structure, allusive reference, graded appraisal, unstable segmentation — make that ontology non-transferable. It further specifies a human-in-the-loop pipeline (pre-annotation, uncertainty-first selection, adjudication, stratified audit) and releases an MIT-licensed script implementing Cohen's kappa, Krippendorff's alpha, weighted kappa, prevalence and bias indices, and the Fleiss–Cohen–Everitt standard error, with strict and relaxed F1 and paired tests; validation against `krippendorff` and `scipy` yields exact agreement for alpha and the exact Wilcoxon p-value. The structured corpus is further deployed as a **single-file TiddlyWiki knowledge base**: 11,985 tiddlers packed into one self-contained 11.70 MB HTML that opens offline by double click, supports full-text search and tag-based cross-reference, and rebuilds byte-identically. The corpus comprises 332,547 characters, 3,020 couplets, and 13,135 entity mentions; 3,000 (99.34%) have equal upper- and lower-line lengths and 168 carry source attributions. **This paper reports no unmeasured agreement statistics**: kappa, F1, and timing results remain placeholders until human annotation is complete, while `numbers_map.md` traces every figure to a report cell.
 
 **Keywords**: couplet-talk; Chinese couplets; classical-text annotation; knowledge graph; inter-annotator agreement; Krippendorff's alpha; human-in-the-loop annotation
 
@@ -55,6 +55,7 @@ Yingtong (couplet-talk) is a late-imperial Chinese genre recording couplets with
 1. **本体与标注规范的重做**（§4）：18 类实体标记体系继承自 Shiji-KB，不作改动；联语层、6 类关系、3 类属性、四条边界判定规则、十条易混案例为本文新增。
 2. **可复现的一致性评估方法与代码**（§5–§6）：在联话标注这一具体场景下，给出「单元定义—估计量—不确定性—显著性—错误分析」的完整口径，并交付 MIT 许可、可逐格溯源的实现。
 3. **面向联话文献的可发现数据集**（§7）：字段字典、规模、去重与脱敏方案、许可与获取方式。
+4. **单文件 TiddlyWiki 知识库的工程实现**（§8）：把已完成的结构化标注部署为一个 11.70 MB 的自包含 HTML，实现轻量化、可离线、可检索、可逐字节重建的可视化知识工程交付。
 
 **本文不是《史记》知识库的重实现**，也不声称在标注体系上提出了新范式。
 
@@ -65,6 +66,8 @@ Yingtong (couplet-talk) is a late-imperial Chinese genre recording couplets with
 以《史记》知识库为代表的中文古籍知识库工作，确立了「永久编号 + 类型标记 + 可逆校验」的基本建模范式[CITATION: Shiji-KB，《历史典籍的结构化探索——《史记·列传》数字人文知识库的构建与可视化研究》，《大数据》]。同类思路在史籍之外的文体（如典章、政书、方志）中亦有推进[CITATION: 古籍知识库相关研究]。这些工作共同解决的是**「文本如何被定位」与「专名如何被标记」**两个基础问题。
 
 **与本文的差异**：上述工作的标注单元是叙事文本的句段，实体类型集面向史传中的人物、事件、职官、年代；本文的标注单元是「副联」，在继承 18 类实体标记的前提下，另建联语层与一套以「联」为锚点的关系语义，且引入品第这一序数属性。换言之，本文关心的不是「如何把一部书标注出来」，而是「一个以**评骘**为文体特征的知识对象，该被表示成什么形状」。**本文与上述工作的差异在于新增联语层、关系层与序数属性，而非重新设计实体标记。**
+
+在**交付形态**上亦有一项差异：上述知识库多以「数据库服务 + Web 前端」部署，其结构化成果的获取依赖运行环境与网络。本文（§8）则把同一套标注成果导出为**单文件 TiddlyWiki**：11,985 个 tiddler 打包为一个 11.70 MB 的自包含 HTML，无需服务器即可离线浏览与检索。**这一差异属工程与传播层面，不涉及本体层面的主张**，其动机在 §8.1、§8.8 展开。
 
 ### 2.2 古籍的人机协同标注
 
@@ -616,11 +619,234 @@ reports/
 
 ---
 
-## 8 案例研究
+## 8 系统实现：单文件 TiddlyWiki 知识库的可视化部署
+
+### 8.1 工程目标与问题定位
+
+本文 §3–§7 解决的是「如何标注、如何度量、如何发布数据集」三个问题，但尚未回答一个更下游的问题：**这些结构化成果以何种形态交付给使用者？**
+
+传统古籍知识库（如《史记》知识库一类工程）通常以「数据库服务 + Web 前端」的形式部署，其结构化成果的获取路径依赖三重条件：运行时的数据库与中间件、持续的服务器与网络、以及访问者对特定 URL 的知晓。对数字人文的多数下游使用者——地方志整理者、古典文学教师、独立的楹联爱好者、需要引用具体联语的学者——这三重条件构成了实质性的门槛。
+
+本节的工作是：在已完成的《楹联丛话全编》结构化标注之上，构建并导出**一个自包含的单文件 TiddlyWiki 知识库**，使全部标注成果可被**离线、免安装、双击打开**地浏览与检索。其工程目标可表述为四条可检验命题：
+
+| 编号 | 命题 | 检验方式 | 当前状态 |
+|---|---|---|---|
+| E1 | 导出物为单一 HTML 文件，脱离文件系统与网络亦可运行 | 断开网络、以 `file://` 协议打开，检查 tiddler 载入与检索 | ✅ 已验证（§8.5） |
+| E2 | 单文件包含全部 tiddler，无外链资源 | 检查 HTML 中是否引用外部脚本/样式；核对内含 tiddler 数与导出一致 | ✅ 已验证（§8.5） |
+| E3 | 导出过程可由脚本完整重建，且重建结果与提交版本逐字节一致 | 重跑「导出 → 编译」两脚本，比对 SHA-256 | ✅ 已验证（§8.6） |
+| E4 | 标注正文与结构化索引之间无信息丢失 | 用独立于导出器的数据源交叉核对（§8.7） | ✅ 已验证（§8.7） |
+
+需要预先声明的是：**本文不报告任何未经实测的部署效果数据。** 用户量、访问频次、检索响应时间等指标均无观测基础，一律以占位符标注（见 §11 附录 A）。
+
+### 8.2 技术路线：从标注语料到单文件容器
+
+整条流水线由三个脚本构成，与上游标注脚本串接：
+
+```
+楹联丛话全编.txt
+   │  scripts/annotate_yinglian.py      （上游：Shiji-KB 范式标注）
+   ▼
+data/楹联丛话全编.tagged.md   data/couplets.json   data/entities.json   data/structure.json
+   │  scripts/export_tiddlywiki.py      （本文：字段映射 + tid 生成）
+   ▼
+tiddlywiki/楹联丛话全编/tiddlers/**/*.tid   （11,985 个 tiddler）
+   │  scripts/build_tiddlywiki.py        （本文：调用 TiddlyWiki5 编译为单文件）
+   ▼
+tiddlywiki/oblique.html                  （11.70 MB，双击即开）
+```
+
+三个环节的职责边界是明确的：**上游只负责标注**（产出 Markdown + JSON），**导出器只负责转译**（不改动一个字），**编译器只负责打包**。这一分工延续了 §3.6 R1「只加标记，不改原文」的纪律在工具链层面的落实。
+
+#### 8.2.1 解析与字段映射
+
+导出器的第一阶段解析标注正文 Markdown。解析由四条正则驱动：
+
+| 模式 | 正则 | 作用 |
+|---|---|---|
+| 紫色编号 | `^\[([0-9.]+)\][ \t]?(.*)$` | 段落主键与正文 |
+| 锚点 | `^<a id="pn-([0-9.]+)"></a>$` | Purple Number 的 HTML 锚 |
+| 标题 | `^(#{2,4}) \[([0-9.]+)\] ?(.*)$` | 书/卷/门类/条目标题 |
+| 实体 | `〖([@=;%&◆^~•!?+{:\[_#$])([^〗\|]*)(?:\|([^〗]*))?〗` | 实体标记与消歧竖线 |
+
+字段映射表把标注层的类型符号翻译为 TiddlyWiki 的标签体系。**18 类实体符号 → 18 个中文类型名**的映射是固定的（`@`→人名、`=`→地点、`;`→官职、`%`→时间、`&`→氏族、`◆`→朝代、`^`→名物、`~`→族群、`•`→器物、`!`→天文、`?`→神祇、`+`→生物、`{`→典籍、`:`→礼仪、`[`→刑法、`_`→思想、`#`→身份、`$`→数量）。
+
+导出器另引入**第 19 类实体「出处」**（`实体/出处/<名>`，共 125 个）：它承载集句联的出处冠名（§3.6 R7 所述的形制自证产物），在标注层中并非独立实体类型，但在知识组织上是与「人名」「典籍」并列的一等对象——「杜甫」作为集句出处者与作为联语评点者是两种不同的知识关系，若混为一谈则无法回答「谁被集得最多」这类问题。故本文将其单列为实体类别，并在其 tiddler 中记录出现次数与「又称」（如「杜甫 → 又称：杜工部」）。
+
+#### 8.2.2 tid 生成与标题规范
+
+每个 tiddler 的标题遵循「**前缀/标识**」的层级命名法，使标题本身成为可过滤的分类键：
+
+| tiddler 类别 | 标题格式 | 数量 |
+|---|---|---:|
+| 原文条目（段落） | `条目/<Purple Number>` | 2,254 |
+| 单副联语 | `联语/C####` | 3,020 |
+| 规范名实体 | `实体/<类型名>/<规范名>` | 3,108 |
+| 结构节点（书/卷/门类） | `章节/<id>` | 223 |
+| 标签锚点 | `<标签名本身>` | 3,369 |
+| 索引与系统 | `楹联丛话全编`、`实体索引`、`联语索引`、`书目`、`体例说明`、`TableOfContents` 等 | 12 |
+
+`.tid` 文件的书写遵循 TiddlyWiki5 的 `tiddlerdeserializer/tid` 规范：首段为 `name: value` 字段（每行一个，`#` 开头为注释），**空行之后**才是正文。这一「空行分隔」的细节不是风格问题——deserializer 用 `text.split(/\r?\n\r?\n/mg)` 切分，若缺少该空行，正文首行会被当作字段解析而静默丢失。字段值中的换行一律压平为空格，以免破坏头部结构。
+
+#### 8.2.3 标签绑定与知识关联
+
+本设计的核心是**「实体即标签」**：条目 tiddler 的 `tags` 字段直接承载其内出现的全部实体，例如 `条目/1.3.1` 的标签为：
+
+```
+条目 楹联丛话 楹联丛话/故事 章节/1.3 人名/纪昀 名物/楹帖 名物/桃符
+人名/孟昶 朝代/宋 名物/春帖子 名物/对语 典籍/蜀梼杌 时间/一年 官职/学士
+人名/幸寅逊 朝代/后蜀 人名/吕余庆 地点/成都 身份/太祖 时间/当时 联语
+```
+
+由此，**TiddlyWiki 的标签筛选器即成为本项目的知识关联查询语言**：形如 `[tag[人名/孟昶]]` 的筛选表达式可直接得到「提及孟昶的全部条目」，`[tag[人名/纪昀]tag[楹联丛话]]` 则限定到具体书目。联语 tiddler 的标签同理携带其联类、所属书目与门类、作者、地点与出处（如 `联语/C0002` 的标签为 `联语 春联 楹联丛话 楹联丛话/故事`），并以字段 `来源`（段落级 Purple Number）与 `类型`（联类）绑定可引用地址。
+
+#### 8.2.4 唯一标识与标注溯源
+
+三种标识体系在系统中并存且互不冲突：
+
+1. **Purple Number**（`1.3.1`）——语料级永久地址，继承自 Shiji-KB 的编号方法（§3.1 L2）。条目 tiddler 的 `编号` 字段与正文的 `〔1.3.1〕` 回指均为此。
+2. **联语编号**（`C0002`）——联语层标识，贯穿 `data/couplets.json` 与 `联语/C0002` tiddler。
+3. **规范名**——实体层标识，贯穿 `data/entities.json` 的 `canonical` 与 `实体/<类型>/<规范名>` tiddler。
+
+三者构成的引用闭环使**任一界面元素都可回溯到标注原文**：条目 → 联语 → 实体 → 回到条目。实体 tiddler 的「出现于」清单由导出器从标注正文反向索引生成，因而实体页本身就是一份可检索的共现索引。
+
+### 8.3 一个必须正面处理的工程约束：标签胶囊与同名锚点
+
+TiddlyWiki 的标签胶囊以**标签名本身**去查同名 tiddler，据此判断标签「存在」还是「缺失」（`core/wiki/macros/tag.tid` 中的 `[<__tag__>is[missing]then[tc-tag-missing]else[tc-tag-exists]]`；`is[missing]` 只认真 tiddler，不认 shadow）。
+
+本项目的实体标签名为 `典籍/古格言`，而实体页标题为 `实体/典籍/古格言`——**二者名字对不上**。若不作处理，三千余个标签将一律被渲染为缺失样式，点击后只剩一句 "Missing tiddler …"。本文采用的解法是：**为每个标签补一个与标签同名的轻量锚点 tiddler**（存于 `tiddlers/锚点/` 目录下——**仅是文件路径**，标题仍是标签名本身），正文指向规范页，且**锚点自身不打同名标签**，否则 `[tag[…]]` 筛选会把锚点一并捞出。
+
+| 概念 | 名称 | 说明 |
+|---|---|---|
+| 实体标签 | `典籍/古格言` | 挂在条目/联语上，用于 `[tag[…]]` 筛选 |
+| 实体页 | `实体/典籍/古格言` | 规范页：出现次数、别名、出现位置 |
+| 锚点页 | `典籍/古格言` | 与标签同名，仅使标签可点击 |
+
+这一约束是 TiddlyWiki 实现细节与本文知识组织方案之间的**真实碰撞点**，而非可有可无的修饰：它直接决定了「3,597 个不同标签全部可点击」这一结果是否成立。
+
+### 8.4 单文件打包与离线运行
+
+编译环节调用 TiddlyWiki5 自带的 `build index` 目标，以 `$:/core/save/all` 模板把所有 tiddler 渲染进一个 HTML。站点配置由 `tiddlywiki.info` 声明：
+
+```json
+{
+  "description": "《楹联丛话全编》语义标注导出 —— 条目为 tiddler，实体为 tag",
+  "plugins": [], "themes": ["tiddlywiki/vanilla", "tiddlywiki/snowwhite"],
+  "languages": ["zh-Hans"],
+  "build": { "index": ["--render", "$:/core/save/all", "index.html", "text/plain"] }
+}
+```
+
+`languages` 字段指定 `zh-Hans` 语言包，编译脚本会在打包后核对中文界面是否真的生效；`$:/SiteTitle`、`$:/DefaultTiddlers`、`$:/SiteSubtitle` 等站点级设置以系统 tiddler 形式随导出目录提供。
+
+由此产出的单文件具有以下**可检验**的技术属性：
+
+| 属性 | 内容 |
+|---|---|
+| 容器 | 单一 HTML 文件，11.70 MB（12,265,536 字节） |
+| 外部依赖 | 无（脚本、样式、语言包、全部 tiddler 均内联） |
+| 运行方式 | 双击以 `file://` 协议打开；无需服务器、无需网络 |
+| 内含 tiddler | 11,992 个（其中本站 11,985 个，其余为 TiddlyWiki5 内置系统 tiddler） |
+| 检索能力 | TiddlyWiki5 原生全文检索（侧栏「搜索」面板），索引在浏览器端建立 |
+| 关联浏览 | 标签筛选器 + `<<list-links>>` 宏 + 目录宏（TOC） |
+| 溯源查看 | 正文内 `〔编号〕` 回指、`来源` 字段、实体页「出现于」清单 |
+
+**可复现的技术说明**：编译脚本按 `--tw` 参数 → 环境变量 `TIDDLYWIKI5` → 常见安装位置的顺序定位 TiddlyWiki5 源码目录；也可用 `node tiddlywiki.js <wiki_dir> --output dist --build index` 手工完成等价操作。编译后脚本会自行核对：单文件是否装下全部 tiddler、`$:/SiteTitle`/`$:/DefaultTiddlers` 是否生效、中文语言包是否包含在内——**即打包成功与否由脚本判定，而非由人工目测**。
+
+### 8.5 部署结果的验证
+
+本文为部署环节设定了**四类独立校验**，全部由脚本执行，其结果如下（全部通过）：
+
+**（V1）格式层**：11,985 个 `.tid` 文件的头/正文分隔正确（正文未被当作字段吞掉）；无重复标题。
+
+**（V2）链接层**：25,368 处内部链接全部可解析——即正文中每一个实体链接、每一个联语回指，都能找到对应的 tiddler。
+
+**（V3）数据层**（关键）：以**独立于导出器的数据源**（`data/structure.json`、`data/couplets.json`）交叉核对导出结果：
+
+| 校验项 | 结果 |
+|---|---|
+| 全部源段落已导出 | ✓ 2,254 → 2,254 |
+| 全部联语已导出 | ✓ 3,020 → 3,020 |
+| 条目的实体 tag 与正文标注一致 | ✓ 2,254 个条目全部一致 |
+| 实体标签均有对应 tiddler | ✓ 3,545 个 |
+| 紫色编号目录完整 | ✓ 2,477 个节点，父子标签关系全部正确 |
+| 目录排序正确 | ✓ 224 个父节点下，同级「序」与紫色编号一致 |
+| 筛选器参数括号全部配平 | ✓ 7,389 处 |
+| 全部标签均有同名 tiddler | ✓ 3,595 个（标签不会显示 Missing tiddler） |
+| 锚点 tiddler 指向有效且无自引用标签 | ✓ 3,369 个 |
+| 锚点正文无 "Missing tiddler" 残留 | ✓ |
+| 锚点筛选器均能选出存在的 tiddler | ✓ 4,057 个 |
+
+**（V4）可复现层**：重跑「导出 → 编译」全链路后，产出的单文件与提交版本**逐字节一致**（12,265,536 字节，SHA-256 相同）。这一校验的意义在于：单文件是二进制式的大体量产物，若不可重建，其作为「可验证研究成果」的属性就不成立。§8.6 给出了具体的复现步骤。
+
+### 8.6 可复现部署规程
+
+```bash
+# 前置：Python 3、Node.js、TiddlyWiki5 源码目录（含 tiddlywiki.js 与 boot/boot.js）
+cd <repo>
+
+# 1) 生成标注产物（上游）
+python3 scripts/annotate_yinglian.py
+python3 scripts/lint_text_integrity.py      # 反演校验：只加标记、不改原文
+
+# 2) 导出为 tiddler 目录
+python3 scripts/export_tiddlywiki.py
+
+# 3) 编译为单文件
+python3 scripts/build_tiddlywiki.py --tw /path/to/TiddlyWiki5
+#    或：node tiddlywiki.js "tiddlywiki/楹联丛话全编" --output dist --build index
+
+# 4) 独立校验（不复用导出器的任何中间状态）
+python3 scripts/verify_tiddlywiki.py
+```
+
+产物：`tiddlywiki/oblique.html`。**兼容浏览器与本地运行规则**：产物为标准 HTML，依赖浏览器对 `file://` 协议与内联脚本的支持；现代浏览器（Chrome / Firefox / Edge / Safari 的近期版本）均可直接打开；TiddlyWiki 的浏览器端存储（localStorage）用于保存用户状态，清除浏览器数据即回到初始状态，故**该文件不写入用户磁盘之外的位置**。
+
+### 8.7 展示能力与其边界
+
+系统支持的四类浏览与检索功能，均可由前述 tiddler 结构直接导出：
+
+| 功能 | 实现方式 | 可核验依据 |
+|---|---|---|
+| 标注样例浏览 | `条目/<编号>` tiddler 呈现带标记的原文与实体标签 | §8.5 V3 的「条目实体 tag 与正文标注一致」 |
+| 知识关系查询 | 标签筛选器（如 `[tag[人名/林则徐]]`） | §8.5 V3 的「筛选器参数括号全部配平」与「锚点筛选器均能选出存在的 tiddler」 |
+| 语料全文检索 | TiddlyWiki5 原生搜索面板 | 索引由内联的 11,985 个 tiddler 在浏览器端建立 |
+| 标注溯源查看 | Purple Number 回指、联语 `来源` 字段、实体页「出现于」清单 | §8.5 V3 的「全部源段落已导出」与「全部联语已导出」 |
+
+关于**一致性验证**：本系统在展示层提供的是**标注结果的可浏览性**，而非一致性度量的复算能力——后者由 `research/agreement.py` 承担（§5），二者的分工是：TiddlyWiki 供人浏览与检索，`agreement.py` 供机器复算与统计检验。本节不宣称该 wiki 可用于验证 κ 值。
+
+**必须说明的边界**：单文件体积为 11.70 MB，虽可接受（现代浏览器可流畅加载），但随语料增长将线性上升。本文**未**实现分片、按需加载或压缩传输等优化，亦**未**测量在低带宽环境下的加载表现——相关指标留作占位符（§11 附录 A）。
+
+### 8.8 与既有古籍知识库工作的差异
+
+既有古籍知识库研究多以专业数据库服务形态部署，结构化成果的访问依赖服务器、数据库与网络环境；本文在继承 Shiji-KB 知识建模范式（编号体系、实体标记、可逆校验）的基础上，**采用 TiddlyWiki 的轻量单文件容器化部署**，把「知识库」从一项需要运维的服务降格为一份可被邮件传送、可离线打开、可版本控制的文件。这一取舍回应的是数字人文知识传播的真实瓶颈：并非所有人都有能力或意愿部署数据库，而几乎所有研究者都能打开一个 HTML 文件。
+
+三项具体的技术含义是：
+
+1. **可移植性**：单文件可随数据集一同分发（Git LFS、网盘、期刊附件），接收者无需任何环境准备；
+2. **可验证性**：因打包过程可脚本化重建并逐字节比对（§8.5 V4），产物本身携带「可重建」的证据；
+3. **可再加工性**：导出目录保留逐 tiddler 的 `.tid` 源文件，任何研究者可在其上继续加工，而不必逆向解析 HTML。
+
+本文**不主张**单文件形态适用于所有规模的知识库：本文处理的规模为 11,985 个 tiddler、11.70 MB；超过此量级时，服务端形态在检索性能与写入并发上的优势会重新占优。本文的主张限定为：**对于小型（单一书目量级）古籍结构化数据集，单文件形态在传播与可及性上的收益超过了其在可扩展性上的损失**。
+
+### 8.9 开源属性与研究闭环
+
+本文的三类产物构成一个全开放、可复用、可验证的闭环：
+
+| 产物 | 许可 | 形式 |
+|---|---|---|
+| 标注规范与本体（§3） | CC-BY-4.0 | `SPEC_楹联语义标注.md`、`research/schema.yaml` |
+| 结构化数据集（§7） | CC-BY-4.0 | `data/*.json`、标注正文 Markdown |
+| 知识库导出与构建脚本（§8） | MIT | `scripts/export_tiddlywiki.py`、`scripts/build_tiddlywiki.py`、`scripts/verify_tiddlywiki.py` |
+| 单文件知识库 | MIT（代码）／CC-BY-4.0（内容） | `tiddlywiki/oblique.html` |
+| 一致性度量代码（§5） | MIT | `research/agreement.py` |
+
+由此形成的闭环是：**标注优化（§4）→ 结构化数据集构建（§7）→ 可视化知识工程部署（§8）**，且每一环的产物都可被独立检视：规范可被逐条对照，数据可被重新统计，脚本可被重跑比对，单文件可被离线打开。这一闭环与 §7.4 的许可安排共同构成了本文所称的「全开放、可复用、可验证的数字人文研究成果」。
+
+## 9 案例研究
 
 本节的三个发现**全部来自已完成的语料标注数据**（`data/` 下的产物），不依赖尚未完成的一致性实验。每个发现标注其数据来源，可独立复核。
 
-### 8.1 发现一：名胜题咏的「跨书累积」结构
+### 9.1 发现一：名胜题咏的「跨书累积」结构
 
 **观察**：《楹联丛话全编》的 9 部书构成一个时间序列（从《楹联丛话》到《楹联散话》），其中《巧对录》系为「集对」而非「录联」。若按「题署地」统计联语分布，会得到一个看似稳定的地理分布；但把同一部书的信息加进去，会发现**名胜的联语是跨书累积的**。
 
@@ -632,7 +858,7 @@ reports/
 
 **边界（不可演绎之处）**：`place` 字段是**线索**（联语前最近的地名），不是经考证的悬挂地；上表统计的是「联语前出现的地名」而非「联语实际悬挂处」。本节不据此断言具体某一联的题署地。
 
-### 8.2 发现二：集句联出处的长尾结构与「一书多出」的形态
+### 9.2 发现二：集句联出处的长尾结构与「一书多出」的形态
 
 **观察**：168 副可复原出处的集句联，其出处的分布极不均匀：**杜甫**一人独占 **14 副**（占 8.3%），其余 124 个出处中，出现 ≥3 次的仅 7 个（杜甫 14、王勃 4、温庭筠 4、谢庄武帝册 4、孙邈 3、曹唐 3、韦庄 3、鲁峻 3）。
 
@@ -642,7 +868,7 @@ reports/
 
 **数据来源**：`data/couplets.json`，`lower_source` 字段的频次与形态分类。
 
-### 8.3 发现三：联话术语族的自我指涉
+### 9.3 发现三：联话术语族的自我指涉
 
 **观察**：《楹联丛话》作为一部**关于楹联的著作**，必然大量谈论楹联自身。实测：名物制度类（`^`）实体中，「楹帖」与「楹联」各出现 **137** 次，「集句」106 次，「桃符」17 次。（另有典籍类 `{` 的「楹联」1 处，指书名而非术语，不计入此项。）
 
@@ -654,9 +880,9 @@ reports/
 
 ---
 
-## 9 讨论与局限
+## 10 讨论与局限
 
-### 9.1 标注成本
+### 10.1 标注成本
 
 本文的流水线把标注者的工作**从「从零发现实体」转为「裁决争议」**，这一转换的收益应体现在单位工时上（§5.5 的指标）。但这一主张有两个必须写明的限制：
 
@@ -664,7 +890,7 @@ reports/
 
 **（2）预标注的「准确」与「有用」不是一回事。** 规则预标注的精度高（格式层校验 2,289/2,289 段通过反演校验），但如果它把**错误**的边界高置信地固定下来，标注者反而可能更少发现它——这称为**自动化偏倚**（automation bias）。本文的对策是让预标注结果在界面上**不带确定性视觉标记**，并在规范 §4.5 的 A3 中要求仲裁时先查规范条文而非先看预标注结果。该对策是否有效，须由审计结果检验。
 
-### 9.2 模型预标注的偏置
+### 10.2 模型预标注的偏置
 
 本文以规则引擎而非学习模型作为预标注器，因此**不涉及**模型训练数据带来的类别偏置，但规则引擎有自身的偏置，且是可预见的：
 
@@ -674,7 +900,7 @@ reports/
 
 **（3）未使用模型带来的代价。** 规则引擎的召回上限被词典锁死。若后续引入序列标注模型，**预期收益主要在召回而非精度**。本文不报告该方案的实验结果（§4.3），列为后续工作。
 
-### 9.3 联话特有的模糊性
+### 10.3 联话特有的模糊性
 
 以下四类是联话标注中**结构性**（而非偶然性）的模糊性，无法通过更严格的规范完全消除：
 
@@ -686,15 +912,43 @@ reports/
 
 **（4）作者线索的召回上限。** `author` 字段的高精度模式只覆盖 91 副（3.0%），`author_near` 则只是最近人名线索，不保证是作者（本文语料中 `author_near` 覆盖 934 副）。**「撰联」关系的完整抽取因此无法仅靠联话文本完成**，必须辅以其他文献（如《楹联续话》《楹联三话》的编者自述、作者别集）。本文明确把 `author` 与 `author_near` 设为两个字段而不合并，正是为了不掩盖这一限制。
 
-### 9.4 对「本文与 Shiji-KB 关系」的再声明
+### 10.4 对「本文与 Shiji-KB 关系」的再声明
 
-本文**不是**《史记》知识库的重实现，也不主张在知识建模范式上提出了新主张。本文的增量限于三处：(a) 面向联话文体的本体改造（联语层、6 类关系、3 类属性、四条不可迁移理由）；(b) 联话场景下的一致性度量口径与代码实现；(c) 一个面向联话文献的公开数据集与规范。18 类实体标记、Purple Numbers、反演校验、标记范式取舍等均为 Shiji-KB 的既有成果，本文明确继承并署名。
+本文**不是**《史记》知识库的重实现，也不主张在知识建模范式上提出了新主张。本文的增量限于四处：(a) 面向联话文体的本体改造（联语层、6 类关系、3 类属性、四条不可迁移理由）；(b) 联话场景下的一致性度量口径与代码实现；(c) 一个面向联话文献的公开数据集与规范；(d) 一套把上述成果落地为**单文件可分发的知识库**的导出与打包方法（§8）。其中 (d) 所依赖的 TiddlyWiki 本身是既有开源软件，本文的工作限于**领域化的数据转译与打包规程**，以及「如何把 Shiji-KB 式标注映射为 tiddler/标签体系」这一具体问题的解答；本文**不主张**对 TiddlyWiki 本身作出技术创新。18 类实体标记、Purple Numbers、反演校验、标记范式取舍等均为 Shiji-KB 的既有成果，本文明确继承并署名。
 
 ---
 
-## 10 附录
+### 10.5 单文件部署形态的适用边界
 
-### 10.1 完整标注规范
+§8 的单文件方案解决了可携带性与可及性问题，但引入三项新的约束，本文逐项说明：
+
+**（1）体积随语料线性增长。** 当前产物为 11.70 MB（11,985 个 tiddler）。这一规模在现代浏览器上可流畅加载，但随语料增长将线性上升。本文**未**实现分片、按需加载或压缩传输，**也未**测量低带宽环境下的加载表现——相关指标留作占位符。若本文的方法被迁移至一部体量数十倍的古籍（如整部《四库全书》），单文件形态将不再适用，须回到服务端形态。
+
+**（2）写入并发能力弱。** TiddlyWiki 的浏览器端存储（localStorage）适用于**只读浏览与轻量个人标注**，不适合多人协同编辑。本文的定位是「成果展示与检索」，而非协作平台；协作标注仍在 §4 的专用流程中进行。
+
+**（3）检索性能未经测量。** TiddlyWiki 的全文索引在浏览器端建立，其索引规模与检索延迟随 tiddler 数增长。本文**未**测量检索响应时间，故正文不给出任何检索性能的主张。
+
+此外需重申 §8.7 的边界：TiddlyWiki 提供的是**标注结果的可浏览性**，一致性度量的复算由 `research/agreement.py` 承担，二者分工不同，本文不宣称前者可验证 κ 值。
+
+## 结论与创新点汇总
+
+本文以清代梁章钜《楹联丛话全编》为对象，在 Shiji-KB 知识建模范式基础上，完成了一项面向联话文献的结构化标注、一致性评估与轻量化部署的完整工作。四项独立创新点如下：
+
+**创新点一（本体层）**：面向联话文体的本体改造——保留 Shiji-KB 的 18 类实体标记不变，新增以「联」为原子标注单元的联语层、6 类关系（撰联／题于／用典／评骘／因袭／辑录）与 3 类属性（联类／品第／时代层级），并给出四条联话本体不可由叙事文献直接迁移的具体理由（对偶结构、典故指向、品评层级、无稳定分词边界）。
+
+**创新点二（流程层）**：面向联话标注的人机协同流水线——以「规则冲突度」替代不可用的模型后验熵作为不确定性代理（§4.4），配合 A1–A5 仲裁协议与按「联类 × 关系类型 × 难例」分层的审计抽样（§4.6）。
+
+**创新点三（度量层）**：一套在联话场景下确定性指定的度量口径与可逐格溯源的实现——同时报告 macro/micro κ、p_o、PI、BI、FCE 渐近 SE 与 Scott's Pi，有序标签以二次权重加权 κ 为主、α 与线性权重为辅；其 α 与 Wilcoxon 精确 p 值经与 `krippendorff`、`scipy` 参考实现逐例对照验证（§5.8）。
+
+**创新点四（部署层）**：**实现了基于改进后 Shiji-KB 框架的《楹联丛话》结构化标注语料的轻量化单文件可视化知识库部署**——11,985 个 tiddler 打包为一个 11.70 MB 的自包含 HTML，零依赖、免安装、可离线双击打开，支持全文检索、标签关联查询与标注溯源查看，且「导出 → 编译」链路可脚本化重建并与提交版本逐字节一致（§8）。这为数字人文研究中**小规模（单一书目量级）古籍知识数据集**提供了一种新的轻量化部署方案：把「知识库」从需要运维的服务降格为一份可传送、可离线打开、可版本控制的文件，从而降低古籍数字化成果的传播与二次研究门槛（§8.8、§8.9）。
+
+本文对既有工作的继承是显式的：18 类实体标记、Purple Numbers 编号方法、反演校验、标记范式取舍，均承自 Shiji-KB 并予署名；本文的增量限于上述四项，其中第四项所依赖的 TiddlyWiki 为既有开源软件，本文的工作限于领域化的数据转译与打包规程（§10.4）。
+
+本文也明确了自身的不完备之处：κ、F1 与工时等实验数值在真实人工标注完成前一律留空并附占位符（§6、§11 附录 A）；标注的召回上限受词典覆盖度限制（§10.2）；联类的单值性规定、冠名所指的不确定性、评点归属的模糊与作者线索的低召回，是联话文体结构性的模糊性而非规范不足（§10.3）；单文件形态在语料规模扩大后不再适用（§10.5）。
+
+## 11 附录
+
+### 11.1 完整标注规范
 
 完整标注规范见随附文件：
 
@@ -704,7 +958,7 @@ reports/
 
 本文 §3.6 的 R1–R10 为规范中与联话直接相关的规则，§3.7 的十条案例为规范的操作细则。二者以 `schema.yaml` 与规范文件为准。
 
-### 10.2 样例 20 条
+### 11.2 样例 20 条
 
 以下 20 条取自 `data/couplets.json`，覆盖 11 种联类中的主要类型，并含一条带出处冠名者（C0722，「綦母潜」）。**这些是语料中已完成的标注结果**（非占位符），可用于核对字段理解。完整字段见 §7.2。
 
@@ -735,7 +989,7 @@ reports/
 
 ---
 
-### 10.3 复现说明
+### 11.3 复现说明
 
 ```bash
 cd research
@@ -768,6 +1022,9 @@ python -m unittest discover -s tests -v
 | `[TABLE4_ERRORS]` / `[TABLE4_CONFUSIONS]` | Table 4 各表 | `reports/error_taxonomy.csv`、`SUMMARY.md` |
 | `[DATASET_VERSION]` | 数据集版本号 | 首次发布时确定 |
 | `[DATASET_URL]` | 数据集获取地址 | 发布时确定 |
+| `[WIKI_USERS]` | 单文件知识库的实际用户数 / 访问频次 | 需发布后统计；**当前无观测基础** |
+| `[WIKI_SEARCH_LATENCY]` | 浏览器端全文检索的响应延迟 | 需在目标设备上实测；**当前未测量** |
+| `[WIKI_LOAD_TIME]` | 单文件在低带宽环境下的加载时间 | 需实测；**当前未测量** |
 
 ### B. 需要核实的引用
 
