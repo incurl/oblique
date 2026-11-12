@@ -279,7 +279,7 @@ tags: 条目 楹联丛话 楹联丛话/故事 人名/纪昀 地点/成都
 - **空行之后**才是正文；
 - `tags` 用空格分隔，含空格的标签用 `[[...]]` 包裹。
 
-### 7.5 六个容易踩的坑
+### 7.5 八个容易踩的坑
 
 #### 坑一：链接语法方向相反
 
@@ -366,6 +366,59 @@ core/wiki/macros/tag.tid
 3. 文件路径可以和标题不同（如放在 `tiddlers/锚点/` 下），**标题必须与标签名一致**；
 4. 用独立标记标签（`锚点`）而不是复用 `实体`，免得 `[tag[实体]]` 的计数被污染。
 
+**锚点页的正文用筛选器动态列出相关内容**，而不是写死一堆链接：
+
+```
+!! 相关条目（1）
+
+<$list filter="[tag[典籍/古格言]prefix[条目/]sort[序]]">
+  <$link to=<<currentTiddler>>><$view field="caption"/></$link>
+</$list>
+```
+
+分类清单的形状固定，校验器可以逐条复算：
+
+```
+[tag[X]prefix[条目/]sort[序]]     限定前缀的分类列表
+[tag[锚点]sort[title]]             不限前缀的列表
+```
+
+排序字段按类别取：条目 / 章节用 `序`（零填充编号），
+联语用 `来源`（联语**没有** `序` 字段），实体用 `规范名`。
+
+#### 坑七：`<$list>` 起 `variable` 会让链接全部失效
+
+在 `<$list>` 上给 `variable="x"` 改名，列表项的 `currentTiddler` 上下文
+就丢了，里面的 `{{!!title}}` 和 `<<currentTiddler>>` 全部变空，
+链接被渲染成 `tc-tiddlylink-missing`：
+
+```
+✗ <$list filter="[…]"><$link to={{!!title}}>…</$link></$list>   （带 variable 时）
+✓ <$list filter="[…]"><$link to=<<currentTiddler>>>…</$link></$list>
+```
+
+即：**不要给 `<$list>` 起 `variable`**，链接目标一律用 `<<currentTiddler>>`。
+
+#### 坑八：`<<list-links>>` 宏在 `__class__` 为空时渲染为空
+
+核心的 `<<list-links>>` 内部是
+
+```
+<$genesis $type=<<__type__>> class=<<__class__>>
+```
+
+`class=<<__class__>>` 的属性右值 `>>` 后面那个 `>` 会被解析器并进属性值，
+导致整个标签泄漏成纯文本、列表渲染为空。
+（实测 TiddlyWiki 5.5.0-prerelease：`<<list-links filter:"[tag[…]]">>` 输出为空。）
+
+需要列举标签下的 tiddler 时，直接用原生构件：
+
+```
+<$list filter="[tag[人名/林则徐]sort[序]]">
+  <$link to=<<currentTiddler>>><$view field="title"/></$link>
+</$list>
+```
+
 校验器里要加一条对应检查，否则这个问题会再次悄悄回归：
 
 ```python
@@ -390,10 +443,11 @@ missing = [t for t in used if not t.startswith("$:/") and t not in titles]
 ✓ 6. 2,254 个条目的实体 tag 与正文标注一致
 ✓ 7. 紫色编号目录完整（2,477 个节点，父子标签关系全部正确）
 ✓ 8. 目录排序正确（224 个父节点下，同级「序」与紫色编号一致）
-✓ 9. 筛选器参数括号全部配平（3,332 处）
+✓ 9. 筛选器参数括号全部配平（7,389 处）
 ✓ 10. 全部 3,595 个标签均有同名 tiddler（标签不会显示 Missing tiddler）
 ✓ 10b. 3,369 个锚点 tiddler 指向有效，且无自引用标签
 ✓ 10c. 锚点正文无 “Missing tiddler” 残留
+✓ 10d. 4,057 个锚点筛选器都能选出存在的 tiddler（且排序字段有效）
 ```
 
 第 6 项尤其重要：它逐条比对"正文里标了什么"与"tag 里挂了什么"，
@@ -408,7 +462,9 @@ missing = [t for t in used if not t.startswith("$:/") and t not in titles]
 第 10 项针对标签：检查**每个被使用的标签都有同名 tiddler**。
 缺一个，标签胶囊就会显示成缺失样式、点进去只有一句提示——
 见 §7.5 坑六。10b 进一步确认锚点指向有效且不自引用，
-10c 确认锚点正文本身没有残留 “Missing tiddler” 字样。
+10c 确认锚点正文本身没有残留 “Missing tiddler” 字样，
+10d 则用 Python 独立复算锚点里的每个筛选器：
+必须真的能选出存在的 tiddler，且排序字段在这些 tiddler 上确实存在。
 
 ### 7.7 紫色编号目录（TOC）
 

@@ -30,7 +30,8 @@
     渲染成 missing，点进去只会看到一句 "Missing tiddler …"。
     本项目的实体标签是 `典籍/古格言`，真正的实体页却叫 `实体/典籍/古格言`，
     名字对不上 → 标签全部显示为缺失。
-    修法是给每个标签补一个**与标签同名**的轻量锚点 tiddler，正文指向规范页；
+    修法是给每个标签补一个**与标签同名**的轻量锚点 tiddler，正文用**筛选器**
+    动态列出该标签关联的全部内容（相关条目 / 相关联语 / 相关章节 / 相关实体）。
     锚点不打自己的标签名，也不打「实体」，因此 `[tag[…]]` 的筛选语义不变。
 
 校验：见 scripts/verify_tiddlywiki.py（用独立数据源交叉核对）。
@@ -517,6 +518,40 @@ def build_toc_tiddler(builder: TiddlyWikiBuilder, toc_tree: dict[str, dict]) -> 
 # 锚点 tiddler：让标签胶囊不再显示 "Missing tiddler"
 # ---------------------------------------------------------------------------
 
+# 锚点正文里列举相关 tiddler 时用的「相关列表」构件。
+#
+# 为什么不用核心的 <<list-links>> 宏：它内部是
+#   <$genesis $type=<<__type__>> class=<<__class__>>
+# 而 `class=<<__class__>>` 在 __class__ 为空串时，属性右值 `>>` 的后一个 `>`
+# 会被解析器并进属性值，导致整个标签泄漏成纯文本、列表渲染为空。
+# （实测 TiddlyWiki 5.5.0-prerelease：`<<list-links filter:"[…]">>` 输出为空。）
+# 所以这里直接用原生构件 <$list> + <$link>，不依赖那个宏。
+def related_list(flt: str, field: str = "caption") -> str:
+    """生成一段「相关 tiddler」列表。
+
+    flt 是筛选器表达式。显示文字优先取 ``field`` 指定的字段
+    （条目 / 章节用 caption，实体用 规范名），字段不存在时退回 title。
+
+    两个必须注意的写法细节（实测 TiddlyWiki 5.5.0-prerelease）：
+
+    - **不要给 ``<$list>`` 起 ``variable``**。一旦改名，列表项的
+      ``currentTiddler`` 上下文就丢了，``{{!!title}}`` 与
+      ``<<currentTiddler>>`` 全部变空，链接渲染成 missing。
+    - 链接目标用 ``<<currentTiddler>>``，不要用 ``{{!!title}}``——
+      后者在列表上下文里取到的是**当前**（锚点）tiddler 的 title。
+    """
+    return (
+        "<$list filter=\"" + flt + "\">"
+        "<$link to=<<currentTiddler>>>"
+        "<$let tv-wikilinks=\"no\">"
+        "<$transclude field=\"" + field + "\">"
+        "<$view field=\"title\"/>"
+        "</$transclude>"
+        "</$let>"
+        "</$link>"
+        "</$list>"
+    )
+
 
 def build_anchor_tiddlers(builder: TiddlyWikiBuilder,
                           all_tags: set[str],
@@ -535,8 +570,10 @@ def build_anchor_tiddlers(builder: TiddlyWikiBuilder,
     本项目实体标签叫 ``典籍/古格言``，真正的实体页却叫
     ``实体/典籍/古格言``——名字对不上，于是三千多个标签全显示为缺失。
 
-    修法：给每个标签补一个**与标签同名**的轻量锚点 tiddler，
-    正文指向规范页。**不重命名**现有实体 tiddler。
+    修法：给每个标签补一个**与标签同名**的轻量锚点 tiddler。
+    锚点正文用**筛选器**动态列出与该标签相关的全部 tiddler
+    （相关条目 / 相关联语 / 相关章节 / 相关实体），
+    而不是一个指向规范页的静态链接。
 
     约束（见交接文档 §10）：
 
@@ -550,16 +587,22 @@ def build_anchor_tiddlers(builder: TiddlyWikiBuilder,
         for tag in entity_tags
     }
 
-    # 类型名标签（实体 tiddler 打 `tags: 实体 <类型名>`）→ 实体索引的对应分组
-    type_pages = {name: "实体索引" for name in ENTITY_TYPE_NAMES}
+    # 类型名标签（实体 tiddler 打 `tags: 实体 <类型名>`）→ 该类型的全部实体
+    type_tags = {name: name for name in ENTITY_TYPE_NAMES}
 
     # 候选标签 = 已用标签 + ANCHOR_TAG 本身。
     # ANCHOR_TAG 是锚点自用的标记标签，锚点建好之后它也会变成「已用标签」，
     # 所以必须一并纳入候选，否则它自己会显示成 missing。
     candidates = set(all_tags) | {ANCHOR_TAG}
 
+    # 「锚点」这个标记标签的锚点页要列出「全部锚点」，
+    # 而锚点数只有等其它锚点都建好之后才知道，
+    # 故把它排到最后处理。
+    candidates.discard(ANCHOR_TAG)
+    ordered = sorted(candidates) + [ANCHOR_TAG]
+
     created = 0
-    for tag in sorted(candidates):
+    for tag in ordered:
         # 已有同名 tiddler 的标签本来就正常，不需要锚点
         if tag in builder.tiddlers:
             continue
@@ -567,36 +610,81 @@ def build_anchor_tiddlers(builder: TiddlyWikiBuilder,
         if tag.startswith("$:/"):
             continue
 
+        body_parts: list[str] = [f"!{tag}\n"]
+
+        # 统计该标签挂在哪些类别的 tiddler 上，用来决定列出哪些小节
+        tagged = _tagged_by(builder, tag)
+        n_entry = sum(1 for t in tagged if t.startswith("条目/"))
+        n_couplet = sum(1 for t in tagged if t.startswith("联语/"))
+        n_chapter = sum(1 for t in tagged if t.startswith("章节/"))
+        n_entity = sum(1 for t in tagged if t.startswith("实体/"))
+
+        def section(title: str, flt: str, n: int, field: str = "caption") -> None:
+            """只在该小节确有内容时才写入（避免空标题）。"""
+            if n <= 0:
+                return
+            body_parts.append(f"!! {title}（{n}）\n\n")
+            body_parts.append(related_list(flt, field) + "\n")
+
         if tag in entity_pages:
+            # 实体锚点：列出所有带这个实体标签的条目 / 联语。
             target = entity_pages[tag]
             kind = "实体"
-            note = f"{tag} 的规范页。"
-        elif tag in type_pages:
-            target = type_pages[tag]
+            body_parts.append(
+                f"本标签共出现在 {len(tagged)} 处 tiddler。"
+                "下列条目与联语以该实体标签挂接。\n"
+            )
+            section("相关条目", f"[tag[{tag}]prefix[条目/]sort[序]]", n_entry)
+            section("相关联语", f"[tag[{tag}]prefix[联语/]sort[来源]]", n_couplet)
+            body_parts.append(f"规范页：[[{target}]]\n")
+
+        elif tag in type_tags:
+            # 类型锚点：列出该类型的全部实体。
+            target = "实体索引"
             kind = "类型"
-            note = f"{tag} 类实体的索引。"
+            body_parts.append(
+                f"「{tag}」是实体类型分类。下表列出该类型下的全部实体。\n"
+            )
+            section("相关实体", f"[tag[{tag}]prefix[实体/]sort[规范名]]",
+                    n_entity, field="规范名")
+            body_parts.append(f"索引：[[{target}]]\n")
+
         elif tag == ANCHOR_TAG:
             # 锚点自身的标记标签。它也必须有个同名 tiddler，
             # 否则它自己会显示成 missing。
+            # 它排在最后处理：此时其它锚点都已建好，
+            # 「全部锚点」的计数才是准的（不含它自己）。
             target = "体例说明"
             kind = "标记"
-            note = "锚点 tiddler 的标记标签：凡本库自建的锚点页都挂这个标签。"
+            body_parts.append(
+                "锚点 tiddler 的标记标签：凡本库自建的锚点页都挂这个标签。\n"
+            )
+            section("全部锚点", "[tag[锚点]sort[title]]", len(tagged),
+                    field="title")
+            body_parts.append(f"说明：[[{target}]]\n")
+
         else:
-            # 结构 / 分类标签（书名、门类、联语类型……）没有独立页面，
-            # 指向首页，由标签胶囊的下拉面板列出实际条目。
+            # 结构 / 分类标签（书名、门类、联语类型……）：列出相关章节、
+            # 条目、联语与实体。
             target = "楹联丛话全编"
             kind = "结构"
-            note = f"{tag} 的标签页。"
+            body_parts.append(
+                f"这是结构性标签：标出属于「{tag}」的章节、条目、联语与实体。\n"
+            )
+            section("相关章节", f"[tag[{tag}]prefix[章节/]sort[序]]", n_chapter)
+            section("相关条目", f"[tag[{tag}]prefix[条目/]sort[序]]", n_entry)
+            section("相关联语", f"[tag[{tag}]prefix[联语/]sort[来源]]", n_couplet)
+            section("相关实体", f"[tag[{tag}]prefix[实体/]sort[规范名]]",
+                    n_entity, field="规范名")
+            body_parts.append(f"首页：[[{target}]]\n")
 
-        body = (
-            f"!{tag}\n\n"
-            f"{note}\n\n"
-            f"规范页：[[{target}]]\n\n"
-            "本页是''标签锚点''：TiddlyWiki 用标签名查找同名 tiddler 来判断"
+        body_parts.append(
+            "\n本页是''标签锚点''：TiddlyWiki 用标签名查找同名 tiddler 来判断"
             "标签是否存在，缺少同名 tiddler 时，标签胶囊会被渲染成缺失样式，"
-            "点进去也只会看到一句提示。本页只负责让该标签可点击，"
-            "内容以规范页为准。\n"
+            "点进去也只会看到一句提示。本页列出与该标签相关的全部内容。\n"
         )
+        body = "\n".join(body_parts)
+
         # 锚点**不给自己打同名标签**（自引用会污染 [tag[...]] 的筛选结果）。
         # 「锚点」这个标记标签自身也不例外，故它的锚点页不打任何标签。
         tags = [] if tag == ANCHOR_TAG else [ANCHOR_TAG]
@@ -605,6 +693,11 @@ def build_anchor_tiddlers(builder: TiddlyWikiBuilder,
                     anchor=True)
         created += 1
     return created
+
+
+def _tagged_by(builder: TiddlyWikiBuilder, tag: str) -> list[str]:
+    """列出挂了指定标签的 tiddler（用于统计）。"""
+    return [t for t, rec in builder.tiddlers.items() if tag in rec["tags"]]
 
 
 def build_index_tiddlers(

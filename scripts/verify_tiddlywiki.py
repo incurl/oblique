@@ -417,6 +417,49 @@ def main() -> int:
     else:
         print("✓ 10c. 锚点正文无 “Missing tiddler” 残留")
 
+    # 锚点正文用筛选器动态列举相关 tiddler。这些筛选器必须真的能选出
+    # 存在的 tiddler——否则页面打开是一堆空标题。
+    # 这里用 Python 独立复算一遍（不调用 TiddlyWiki）。
+    ANCHOR_FILTER_RE = re.compile(r'<\$list filter="([^"]*)"')
+    anchor_filter_bad: list[str] = []
+    anchor_filter_count = 0
+    for title, body in bodies.items():
+        if all_fields.get(title, {}).get("锚点") != "true":
+            continue
+        for flt in ANCHOR_FILTER_RE.findall(body):
+            anchor_filter_count += 1
+            # 只处理本项目生成的固定形状：
+            #   [tag[X]prefix[P/]sort[F]]   —— 限定前缀的分类列表
+            #   [tag[X]sort[F]]             —— 不限前缀的列表
+            m = re.fullmatch(
+                r"\[tag\[(.+?)\](?:prefix\[(.+?)/\])?(?:sort\[(.+?)\])?\]", flt)
+            if not m:
+                anchor_filter_bad.append(f"{title}: 无法解析的筛选器 {flt}")
+                continue
+            tag, prefix, sort_field = m.group(1), m.group(2), m.group(3)
+            if prefix:
+                matched = [t for t, tgs in all_tags.items()
+                           if tag in tgs and t.startswith(prefix + "/")]
+            else:
+                matched = [t for t, tgs in all_tags.items() if tag in tgs]
+            if not matched:
+                anchor_filter_bad.append(f"{title}: {flt} 选出 0 个 tiddler")
+                continue
+            # 排序字段必须真的存在于这些 tiddler 上，否则排序结果无意义
+            if sort_field and sort_field != "title":
+                missing_field = [t for t in matched
+                                 if sort_field not in all_fields.get(t, {})]
+                if missing_field:
+                    anchor_filter_bad.append(
+                        f"{title}: {flt} 排序字段「{sort_field}」在 "
+                        f"{len(missing_field)} 个 tiddler 上不存在")
+    if anchor_filter_bad:
+        errors.append(f"锚点筛选器有问题 {len(anchor_filter_bad)} 处："
+                      f"{anchor_filter_bad[:5]}")
+    else:
+        print(f"✓ 10d. {anchor_filter_count} 个锚点筛选器都能选出存在的 tiddler"
+              f"（且排序字段有效）")
+
     # ---- 统计 ----
     kinds = Counter(t.split("/", 1)[0] if "/" in t else "根" for t in titles)
     print()
