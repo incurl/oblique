@@ -11,6 +11,9 @@ placeholders_remaining:
   - [单位]
   - [邮箱]
   - [日期]
+editor_email: gjbhyj2018@163.com
+email_source: 官方投稿系统「期刊简介」栏 Email（另有电话 022-23767301）
+email_status: verified
 notes: 突出古籍标引规范设计与可复用的整理流程；文津流觞为同类备选刊物，本次未单独成文
 ---
 

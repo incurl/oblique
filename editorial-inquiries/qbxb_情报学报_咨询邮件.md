@@ -15,6 +15,9 @@ placeholders_remaining:
   - [电话，可省]
   - [ORCID，可选]
   - [日期]
+editor_email: [EDITOR_EMAIL]
+email_source: 未证实：qbxb.com.cn / cnjournals / magtech / CNKI 子站均失败
+email_status: unverified
 notes: 改为方法学取向：突出预标注、主动采样与 κ/F1、工时对比；基线系统保留占位符，未擅定
 ---
 

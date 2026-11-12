@@ -14,6 +14,9 @@ placeholders_remaining:
   - [电话，可省]
   - [ORCID，可选]
   - [日期]
+editor_email: [EDITOR_EMAIL]
+email_source: 未证实：jirm.whu.edu.cn 首页与栏目页未印出邮箱
+email_status: unverified
 notes: 改为知识组织取向：突出本体设计、标识体系与知识库的轻量化发布形态
 ---
 

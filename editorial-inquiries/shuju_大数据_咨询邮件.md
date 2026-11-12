@@ -14,6 +14,9 @@ placeholders_remaining:
   - [电话，可省]
   - [ORCID，可选]
   - [日期]
+editor_email: [EDITOR_EMAIL]
+email_source: 未证实：jdata.org.cn / datamag.com.cn / CNKI 子站均无法取得官方邮箱
+email_status: unverified
 notes: 突出数据集与规范的可交付性；把已完成的度量脚本与「人工双标轮次尚在推进」如实分开表述
 ---
 

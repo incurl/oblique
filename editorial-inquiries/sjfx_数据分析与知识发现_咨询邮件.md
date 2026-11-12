@@ -15,6 +15,9 @@ placeholders_remaining:
   - [电话，可省]
   - [ORCID，可选]
   - [日期]
+editor_email: jishu@mail.las.ac.cn
+email_source: 官方首页页脚 E-mail 栏（含地址/邮编/电话）；见 CONTACTS.md
+email_status: verified
 notes: 改为数据方法取向：突出评测口径、显著性检验与可复现脚本；基线系统保留占位符
 ---
 

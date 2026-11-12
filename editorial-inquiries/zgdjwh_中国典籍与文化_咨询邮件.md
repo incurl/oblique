@@ -11,6 +11,9 @@ placeholders_remaining:
   - [单位]
   - [邮箱]
   - [日期]
+editor_email: [EDITOR_EMAIL]
+email_source: 未证实：未找到该刊独立投稿站点
+email_status: unverified
 notes: 技术流水线压缩为一句，改为突出联话文献本体与实体/关系整理所能支撑的文学史、文献学问题
 ---
 

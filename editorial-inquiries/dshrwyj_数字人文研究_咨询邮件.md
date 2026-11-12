@@ -14,6 +14,9 @@ placeholders_remaining:
   - [电话，可省]
   - [ORCID，可选]
   - [日期]
+editor_email: rucdh@ruc.edu.cn
+email_source: 人大数字人文研究院页脚「投稿邮箱」；另有联系邮箱 dhlab@ruc.edu.cn
+email_status: verified
 notes: 突出知识库范式迁移与标注流程改造；对「范式迁移而非数据复用」的措辞作显式强调
 ---
 

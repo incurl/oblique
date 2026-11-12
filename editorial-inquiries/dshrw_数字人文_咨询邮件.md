@@ -14,6 +14,9 @@ placeholders_remaining:
   - [电话，可省]
   - [ORCID，可选]
   - [日期]
+editor_email: [EDITOR_EMAIL]
+email_source: 未证实：CNKI 该刊「联系我们」页被验证码拦截，正文不可读
+email_status: unverified
 notes: 同《数字人文研究》角度；提示中英摘要齐备，投稿前需确认该刊是否有额外字数或图表要求
 ---
 
