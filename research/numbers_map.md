@@ -30,6 +30,12 @@
 | T1 行：18 类实体及其出现次数 | `reports/../data/entities.json` | `counts_by_type` 字段（上游标注产物） | ✅ 已由语料实测填入（见 `schema.yaml: corpus_reference`） |
 | T1 行：6 类关系及其标注量 | `reports/kappa_by_type.csv` | `unit_family == "relation"` 各行的 `n_units` | ⬜ 待真实标注填入 |
 | T1 行：11 类联类及数量 | `data/couplets.json` | `counts_by_type` 字段 | ✅ 已由语料实测填入 |
+| T1/§7.1 行：联语总数 3,016 | `data/couplets.json` | `total` 字段 | ✅ 已填（**已应用 20 例人工复核**，4 副非联语剔除后 3,020 → 3,016） |
+| §7.1 行：上下联等长 3,016（100%） | `data/couplets.json` | `equal_length` / `equal_length_ratio` / `unequal_length_ids` 字段 | ✅ 已填（`unequal_length_ids` 为空数组即为全等长） |
+| §7.1 行：联语正文总字数 72,455 | `data/couplets.json` | `sum(len(item["text"]) for item in items)` | ✅ 已填（口径＝`text` 字段含标点的总长） |
+| §7.1 行：可复原出处冠名 171 副 | `data/couplets.json` | `with_lower_source` 字段 | ✅ 已填（另有 3 副含 `upper_source`，为「联末合并式出处」） |
+| §7.3 行：去重后 2,958 / 冗余 58 条 | `data/couplets.json` | `len({upper+"；"+lower})`；`total − 去重数` | ✅ 已填 |
+| §4.4 R9a / 案例 20 例复核 | `data/couplet_corrections.json`、`scripts/verify_couplet_balance.py` 输出 | 复核表 `entries`（20 条：16 corrected + 4 not-couplet） | ✅ 已填（回归闸门全部通过） |
 
 ### Table 2（各类型 κ / p_o / PI / BI / 95%CI）
 

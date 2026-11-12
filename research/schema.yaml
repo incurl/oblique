@@ -323,17 +323,17 @@ corpus_reference:
   structure_paragraph_nodes: 2253  # data/structure.json 中 kind == "paragraph" 的节点
   entity_mentions: 13135
   canonical_entities: 2979
-  couplets: 3020
-  couplet_chars_total: 72585
-  couplets_equal_length: 3000
-  couplet_equal_length_ratio: 0.9934
-  couplets_with_source_attribution: 168
-  distinct_source_attributions: 125
+  couplets: 3016
+  couplet_chars_total: 72455          # sum(len(text))，含标点
+  couplets_equal_length: 3016       # 经 20 例人工复核后全部等长
+  couplet_equal_length_ratio: 1.0
+  couplets_with_source_attribution: 171
+  couplets_with_upper_source: 3    # 联末合并式出处（子由/放翁、朱子/文□）
+  distinct_source_attributions: 128
   couplets_with_high_confidence_author: 91
-  couplets_with_place_hint: 1182
-  distinct_place_hints: 383
+  couplets_with_place_hint: 1181
+  distinct_place_hints: 382
   distinct_books: 9
-  source_attribution_forms:
-    人名: 146
-    X句缩写: 13
-    文献题名: 9
+  reviewed_cases: 20                    # docs/AUDIT_上下联字数平衡审计.md
+  reviewed_corrected: 16
+  reviewed_excluded_not_couplet: 4

@@ -13,11 +13,14 @@
 ## 快速开始
 
 ```bash
-python3 scripts/annotate_yinglian.py   # 生成标注正文与索引
-python3 scripts/lint_text_integrity.py # 校验“只加标记，不改原文”
-python3 scripts/render_yinglian.py     # 生成 docs/index.html 预览
-python3 scripts/export_tiddlywiki.py   # 导出 TiddlyWiki（条目为 tiddler，实体为 tag）
-python3 scripts/verify_tiddlywiki.py   # 校验导出结果自洽
+python3 scripts/annotate_yinglian.py         # 生成标注正文与索引
+python3 scripts/lint_text_integrity.py       # 校验“只加标记，不改原文”
+python3 scripts/verify_couplet_balance.py    # 校验上下联字数平衡（复核结论回归）
+python3 scripts/render_yinglian.py           # 生成 docs/index.html 预览
+python3 scripts/export_couplets_csv.py       # 导出 data/couplets.csv
+python3 scripts/export_tiddlywiki.py         # 导出 TiddlyWiki（条目为 tiddler，实体为 tag）
+python3 scripts/verify_tiddlywiki.py         # 校验导出结果自洽
+python3 scripts/build_tiddlywiki.py          # 编译单文件 wiki
 ```
 
 ## 产物
@@ -26,7 +29,9 @@ python3 scripts/verify_tiddlywiki.py   # 校验导出结果自洽
 |---|---|
 | `data/楹联丛话全编.tagged.md` | 标注正文（1.2 MB，7,967 行） |
 | `data/entities.json` | 13,135 处实体标注 / 2,979 个规范名 |
-| `data/couplets.json` | 3,020 副联语（上下联、类型、作者线索、出处） |
+| `data/couplets.json` | 3,016 副联语（上下联、类型、作者线索、出处；含人工复核结论） |
+| `data/couplets.csv` | 同上，CSV 版（Excel 直接可读） |
+| `data/couplet_corrections.json` | 20 例人工复核结论（字数平衡审计，见 `docs/`） |
 | `data/structure.json` | 9 部书 / 卷 / 门类 / 条目结构 |
 | `docs/index.html` | 静态 HTML 预览（实体按类型着色） |
 | `tiddlywiki/楹联丛话全编/` | **TiddlyWiki 导出**（8,610 个 tiddler，可直接打开/服务端浏览） |
@@ -41,7 +46,7 @@ python3 scripts/verify_tiddlywiki.py   # 校验导出结果自洽
 源文件          2,588 行 / 332,547 字
 正文段落        2,289 段
 实体标注        13,135 处
-联语            3,020 副
+联语            3,016 副（100% 上下联等长）
 结构块          96 个
 ```
 
@@ -55,7 +60,7 @@ python3 scripts/verify_tiddlywiki.py   # 校验导出结果自洽
 | 前缀 | 含义 | 数量 | 典型标题 |
 |---|---|---|---|
 | `条目/` | 原文条目（段落级） | 2,254 | `条目/1.3.1` |
-| `联语/` | 单副联语 | 3,020 | `联语/C0002` |
+| `联语/` | 单副联语 | 3,016 | `联语/C0002` |
 | `实体/` | 规范名实体 | 3,108 | `实体/人名/林则徐` |
 | `章节/` | 书 / 卷 / 门类 / 条目导航 | 223 | `章节/1.3` |
 | `锚点/` | 与标签同名的锚点页（见下） | 3,369 | `典籍/古格言` |
@@ -182,7 +187,7 @@ node /path/to/TiddlyWiki5/tiddlywiki.js tiddlywiki/楹联丛话全编 --listen
 ✓ 2. 全部 25,368 处内部链接均可解析
 ✓ 3. 3,545 个实体标签均有对应 tiddler
 ✓ 4. 全部 2,254 个源段落均已导出
-✓ 5. 全部 3,020 副联语均已导出
+✓ 5. 全部 3,016 副联语均已导出
 ✓ 6. 2,254 个条目的实体 tag 与正文标注一致
 ✓ 7. 紫色编号目录完整（2,477 个节点，父子标签关系全部正确）
 ✓ 8. 目录排序正确（224 个父节点下，同级「序」与紫色编号一致）
@@ -227,16 +232,20 @@ node /path/to/TiddlyWiki5/tiddlywiki.js tiddlywiki/楹联丛话全编 --listen
 
 ```
 scripts/
-  yinglian_dict.py        词典
-  yinglian_lib.py         解析 / 标注引擎
-  annotate_yinglian.py    生成 Markdown 与 JSON
-  lint_text_integrity.py  完整性校验
-  render_yinglian.py      HTML 预览
-  export_tiddlywiki.py    导出 TiddlyWiki（.tid 目录）
-  verify_tiddlywiki.py    导出结果校验
-  build_tiddlywiki.py     编译成单文件 HTML
-data/                     标注产物
-docs/                     预览页
-tiddlywiki/oblique.html   单文件 wiki（交付物，约 8.2 MB）
-tiddlywiki/楹联丛话全编/  TiddlyWiki 导出（中间产物，不入版本库）
+  yinglian_dict.py           词典
+  yinglian_lib.py            解析 / 标注引擎
+  annotate_yinglian.py       生成 Markdown 与 JSON
+  couplet_corrections.py     应用 20 例人工复核结论
+  lint_text_integrity.py     完整性校验（只加标记、不改原文）
+  verify_couplet_balance.py  联语字数平衡回归闸门
+  render_yinglian.py         HTML 预览
+  export_couplets_csv.py     导出联语 CSV
+  export_tiddlywiki.py       导出 TiddlyWiki（.tid 目录）
+  verify_tiddlywiki.py       导出结果校验
+  build_tiddlywiki.py        编译成单文件 HTML
+  audit_case.py              逐例打印待复核联语（审计辅助）
+data/                        标注产物 + data/couplet_corrections.json（复核结论）
+docs/                        预览页 + 审计日志
+tiddlywiki/oblique.html      单文件 wiki（交付物，约 11.7 MB）
+tiddlywiki/楹联丛话全编/     TiddlyWiki 导出（中间产物，不入版本库）
 ```

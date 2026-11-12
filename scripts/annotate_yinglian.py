@@ -30,6 +30,7 @@ from yinglian_lib import (
     annotate_text,
     parse_document,
 )
+from couplet_corrections import apply_corrections, load_corrections
 
 TAGGED_PATH = DATA_DIR / "楹联丛话全编.tagged.md"
 ENTITIES_PATH = DATA_DIR / "entities.json"
@@ -287,42 +288,57 @@ def build_entities_index(entities: list[dict]) -> dict:
 def build_couplets_index(couplets: list[dict]) -> dict:
     items = []
     for i, c in enumerate(couplets, 1):
+        # 用预先固化的序号（apply_corrections 之前的位置），保证剔除案例后 ID 不漂移
+        seq = c.get("_seq", i)
         upper = c.get("upper", "")
         lower = c.get("lower", "")
         source = c.get("lower_source", "")
         marks = c.get("editorial_markers", [])
-        items.append(
-            {
-                "id": f"C{i:04d}",
-                "book": c.get("book", ""),
-                "volume": c.get("volume", ""),
-                "section": c.get("section", ""),
-                "entry": c.get("entry", ""),
-                "ref": c.get("ref", ""),
-                "type": c.get("type", "联语"),
-                "upper": upper,
-                "lower": lower,
-                "lower_source": source,
-                "editorial_markers": marks,
-                "upper_len": len(upper),
-                "lower_len": len(lower),
-                "text": c.get("quote", ""),
-                "author": c.get("author"),
-                "author_near": c.get("author_near"),
-                "place": c.get("place"),
-                "context": c.get("context", ""),
-            }
-        )
+        item = {
+            "id": f"C{seq:04d}",
+            "book": c.get("book", ""),
+            "volume": c.get("volume", ""),
+            "section": c.get("section", ""),
+            "entry": c.get("entry", ""),
+            "ref": c.get("ref", ""),
+            "type": c.get("type", "联语"),
+            "upper": upper,
+            "lower": lower,
+            "lower_source": source,
+            "editorial_markers": marks,
+            "upper_len": len(upper),
+            "lower_len": len(lower),
+            "text": c.get("quote", ""),
+            "author": c.get("author"),
+            "author_near": c.get("author_near"),
+            "place": c.get("place"),
+            "context": c.get("context", ""),
+        }
+        # 人工复核结论（见 docs/AUDIT_上下联字数平衡审计.md）
+        if c.get("review"):
+            item["review"] = c["review"]
+        if c.get("upper_raw") is not None:
+            item["upper_raw"] = c["upper_raw"]
+        if c.get("lower_raw") is not None:
+            item["lower_raw"] = c["lower_raw"]
+        if c.get("upper_source") is not None:
+            item["upper_source"] = c["upper_source"]
+        items.append(item)
 
     with_source = sum(1 for i in items if i["lower_source"])
     equal_len = sum(1 for i in items if i["upper_len"] == i["lower_len"])
+    unequal = [i["id"] for i in items if i["upper_len"] != i["lower_len"]]
+    reviewed = [i["id"] for i in items if i.get("review")]
     return {
-        "schema": "yinglian-couplets-v1",
+        "schema": "yinglian-couplets-v2",
         "total": len(items),
         "counts_by_type": dict(Counter(i["type"] for i in items)),
         "with_lower_source": with_source,
         "equal_length": equal_len,
         "equal_length_ratio": round(equal_len / len(items), 4) if items else 0.0,
+        "unequal_length_ids": unequal,
+        "reviewed": len(reviewed),
+        "reviewed_ids": reviewed,
         "items": items,
     }
 
@@ -389,6 +405,20 @@ def generate(out_path: Path = TAGGED_PATH) -> None:
         c["volume"] = v
         c["section"] = s
         c["entry"] = e
+
+    # ── 应用人工复核结论（上下联字数平衡审计，见 docs/AUDIT_上下联字数平衡审计.md）──
+    # 先固化序号：剔除案例后 ID 不得漂移，否则审计文档与 tiddler 链接全部失效。
+    for seq, c in enumerate(couplets, 1):
+        c["_seq"] = seq
+    corrections = load_corrections()
+    if corrections:
+        couplets, excluded = apply_corrections(couplets, corrections)
+        print(f"review: applied {len(corrections)} corrections, "
+              f"kept {len(couplets):,}, excluded {len(excluded)}")
+        for c in excluded:
+            r = c.get("excluded_reason", {})
+            print(f"  excluded C{c.get('_seq', 0):04d} {r.get('rule')} 案例{r.get('case')}: "
+                  f"{c.get('quote','')[:32]}…")
 
     markdown = "\n\n".join(p for p in body_parts if p) + "\n"
     out_path.parent.mkdir(parents=True, exist_ok=True)

@@ -8,7 +8,7 @@
 
 ## 摘要
 
-联话（楹联话）是清代文人记录对联、评论对联的一类文体，现存者以梁章钜《楹联丛话全编》为集大成之作。此类文献既保存了大量对联文本，也保存了撰者、题署地、典故出处与品评意见等文献学信息，是研究楹联史与清代文学风尚的重要材料，但长期未被结构化处理。本文以《楹联丛话全编》为对象，在《史记》知识库（Shiji-KB）所确立的「永久编号 + 类型标记 + 领域校验」知识建模范式基础上，面向联话文献特性重做本体与标注规范：保留 18 类实体标记体系，**新增**联语层（以「联」为最小标注单元）、6 类关系（撰联、题于、用典、评骘、因袭、辑录）与 3 类属性（联类、品第、时代层级），并针对联话文体的对偶结构、典故指向与评骘层级提出**四条不可由叙事文献直接迁移的改造**。在流程上，本文提出「规则预标注—高不确定性优先抽检—仲裁—分层一致性审计」的人机协同流水线，配套实现 MIT 许可的度量脚本 `agreement.py`：对 Cohen's κ、Fleiss' κ、Krippendorff's α、加权 κ、Byrt 等的流行度指数与偏倚指数、Fleiss–Cohen–Everitt 渐近标准误给出统一实现，并在同一套单元定义下计算实体与关系抽取的严格/宽松 F1、配对自助法与 Wilcoxon 检验。经与 `krippendorff` 与 `scipy` 参考实现逐例对照（37 项单元测试），本文度量代码在名义与有序 α、Wilcoxon 精确 p 值等口径上与参考实现完全一致。语料规模为 332,547 字、2,289 个标注段落（其中 2,253 个为结构树段落节点）、13,135 处实体标注、2,979 个规范名、3,020 副联语；其中 3,000 副（99.34%）上下联等长，168 副可复原集句出处冠名。**本文不报告任何未经实测的一致性数值**：κ、F1、工时等实验结果在真实人工标注完成前一律留作占位符，并以 `numbers_map.md` 建立论文数值与报告文件的逐格映射契约。
+联话（楹联话）是清代文人记录对联、评论对联的一类文体，现存者以梁章钜《楹联丛话全编》为集大成之作。此类文献既保存了大量对联文本，也保存了撰者、题署地、典故出处与品评意见等文献学信息，是研究楹联史与清代文学风尚的重要材料，但长期未被结构化处理。本文以《楹联丛话全编》为对象，在《史记》知识库（Shiji-KB）所确立的「永久编号 + 类型标记 + 领域校验」知识建模范式基础上，面向联话文献特性重做本体与标注规范：保留 18 类实体标记体系，**新增**联语层（以「联」为最小标注单元）、6 类关系（撰联、题于、用典、评骘、因袭、辑录）与 3 类属性（联类、品第、时代层级），并针对联话文体的对偶结构、典故指向与评骘层级提出**四条不可由叙事文献直接迁移的改造**。在流程上，本文提出「规则预标注—高不确定性优先抽检—仲裁—分层一致性审计」的人机协同流水线，配套实现 MIT 许可的度量脚本 `agreement.py`：对 Cohen's κ、Fleiss' κ、Krippendorff's α、加权 κ、Byrt 等的流行度指数与偏倚指数、Fleiss–Cohen–Everitt 渐近标准误给出统一实现，并在同一套单元定义下计算实体与关系抽取的严格/宽松 F1、配对自助法与 Wilcoxon 检验。经与 `krippendorff` 与 `scipy` 参考实现逐例对照（37 项单元测试），本文度量代码在名义与有序 α、Wilcoxon 精确 p 值等口径上与参考实现完全一致。语料规模为 332,547 字、2,289 个标注段落（其中 2,253 个为结构树段落节点）、13,135 处实体标注、2,979 个规范名、3,016 副联语；经 20 例逐例人工复核后，**3,016 副（100%）上下联等长**，171 副可复原集句出处冠名。**本文不报告任何未经实测的一致性数值**：κ、F1、工时等实验结果在真实人工标注完成前一律留作占位符，并以 `numbers_map.md` 建立论文数值与报告文件的逐格映射契约。
 
 **关键词**：联话；楹联；古籍标注；知识图谱；标注一致性；Krippendorff's α；人机协同标注
 
@@ -16,7 +16,7 @@
 
 ## Abstract
 
-Yingtong (couplet-talk) is a late-imperial Chinese genre recording couplets with their authors, sites, sources, and appraisals. Liang Zhangju's Qing collection *Yinglian Conghua Quanbian* has never been structurally processed, despite rich evidence for couplet history. This paper builds on the Shiji Knowledge Base's modelling paradigm (Purple Numbers, type-tagged entities, domain validation), but reworks it for couplet-talk. The 18-type entity inventory is inherited unchanged; the paper **adds** a couplet layer (the couplet as the atomic unit), six relation types, and three attributes (*couplet class, evaluative grade, period tier*), and argues that four genre properties — antithetical structure, allusive reference, graded appraisal, unstable segmentation — make that ontology non-transferable. It further specifies a human-in-the-loop pipeline (pre-annotation, uncertainty-first selection, adjudication, stratified audit) and releases an MIT-licensed script implementing Cohen's kappa, Krippendorff's alpha, weighted kappa, prevalence and bias indices, and the Fleiss–Cohen–Everitt standard error, with strict and relaxed F1 and paired tests; validation against `krippendorff` and `scipy` yields exact agreement for alpha and the exact Wilcoxon p-value. The structured corpus is further deployed as a **single-file TiddlyWiki knowledge base**: 11,985 tiddlers packed into one self-contained 11.70 MB HTML that opens offline by double click, supports full-text search and tag-based cross-reference, and rebuilds byte-identically. The corpus comprises 332,547 characters, 3,020 couplets, and 13,135 entity mentions; 3,000 (99.34%) have equal upper- and lower-line lengths and 168 carry source attributions. **This paper reports no unmeasured agreement statistics**: kappa, F1, and timing results remain placeholders until human annotation is complete, while `numbers_map.md` traces every figure to a report cell.
+Yingtong (couplet-talk) is a late-imperial Chinese genre recording couplets with their authors, sites, sources, and appraisals. Liang Zhangju's Qing collection *Yinglian Conghua Quanbian* has never been structurally processed, despite rich evidence for couplet history. This paper builds on the Shiji Knowledge Base's modelling paradigm (Purple Numbers, type-tagged entities, domain validation), but reworks it for couplet-talk. The 18-type entity inventory is inherited unchanged; the paper **adds** a couplet layer (the couplet as the atomic unit), six relation types, and three attributes (*couplet class, evaluative grade, period tier*), and argues that four genre properties — antithetical structure, allusive reference, graded appraisal, unstable segmentation — make that ontology non-transferable. It further specifies a human-in-the-loop pipeline (pre-annotation, uncertainty-first selection, adjudication, stratified audit) and releases an MIT-licensed script implementing Cohen's kappa, Krippendorff's alpha, weighted kappa, prevalence and bias indices, and the Fleiss–Cohen–Everitt standard error, with strict and relaxed F1 and paired tests; validation against `krippendorff` and `scipy` yields exact agreement for alpha and the exact Wilcoxon p-value. The structured corpus is further deployed as a **single-file TiddlyWiki knowledge base**: 11,985 tiddlers packed into one self-contained 11.70 MB HTML that opens offline by double click, supports full-text search and tag-based cross-reference, and rebuilds byte-identically. The corpus comprises 332,547 characters, 3,016 couplets, and 13,135 entity mentions; after case-by-case review of 20 previously imbalanced entries, all 3,016 (100%) have equal upper- and lower-line lengths and 171 carry source attributions. **This paper reports no unmeasured agreement statistics**: kappa, F1, and timing results remain placeholders until human annotation is complete, while `numbers_map.md` traces every figure to a report cell.
 
 **Keywords**: couplet-talk; Chinese couplets; classical-text annotation; knowledge graph; inter-annotator agreement; Krippendorff's alpha; human-in-the-loop annotation
 
@@ -32,13 +32,13 @@ Yingtong (couplet-talk) is a late-imperial Chinese genre recording couplets with
 
 与史传、纪事、方志等叙事文献不同，**联话**是清代形成的一类专门文体。它的文本形态有三个显著特征：其一，正文以「引一副联，加一段品评」为基本循环，联语本身以引号标出并以上下联对举的形式出现；其二，同一部书中联语与叙述、考辨、引录他书交错，联语的**切分边界**与叙述文字的**句法边界**交织；其三，编者对联语的评骘构成文本的语义主线之一，评者、品第与评语常以转述形式出现，缺乏稳定的显式标记。
 
-《楹联丛话全编》共 9 部、2,588 行、332,547 字，收录联语 3,020 副，人名、地名等实体标注 13,135 处（本文语料的实测值，数据来源见 `research/numbers_map.md` §三）。这些数字说明：一部联话汇编中的**实体密度并不低**，但真正决定文献学价值的**结构信息——联语与作者、题署地、典故、评点之间的关系——恰恰无法由通用实体标注承载**。就本文所考察的语料而言，实体标注可以告诉我们「某处提到林则徐」，却无法回答「哪一副联语是林则徐所撰」「此联题于何处」「哪一联用《四书》集句」「编者对它的评价是什么」。
+《楹联丛话全编》共 9 部、2,588 行、332,547 字，收录联语 3,016 副，人名、地名等实体标注 13,135 处（本文语料的实测值，数据来源见 `research/numbers_map.md` §三）。这些数字说明：一部联话汇编中的**实体密度并不低**，但真正决定文献学价值的**结构信息——联语与作者、题署地、典故、评点之间的关系——恰恰无法由通用实体标注承载**。就本文所考察的语料而言，实体标注可以告诉我们「某处提到林则徐」，却无法回答「哪一副联语是林则徐所撰」「此联题于何处」「哪一联用《四书》集句」「编者对它的评价是什么」。
 
 ### 1.3 为什么《史记》的本体不能直接照搬
 
 《史记》知识库的设计前提是**叙事性散文**：人物有生平、事件有因果、年代有系次、官职有沿革。这一前提在联话中大部分失效。以下五条是本文实测中确认的、**不可直接迁移**的具体理由：
 
-**（1）对偶结构使「最小标注单元」发生跃迁。** 史传以句、段为最小语义单位；联话的基本单位是「一副联」。一副联由上联、下联组成，二者字数相等（本文语料中 3,000/3,020 副即 99.34% 等长）、词性相对、语义互补，且共同构成一个不可拆分的审美对象。若沿用句级或段级标注，则「上联」「下联」会被记为两段互不相关的文本，其间的对仗关系无从表达。
+**（1）对偶结构使「最小标注单元」发生跃迁。** 史传以句、段为最小语义单位；联话的基本单位是「一副联」。一副联由上联、下联组成，二者字数相等（本文语料中 3,016/3,016 副即 100% 等长，见 §4.4 与 `docs/AUDIT_上下联字数平衡审计.md`）、词性相对、语义互补，且共同构成一个不可拆分的审美对象。若沿用句级或段级标注，则「上联」「下联」会被记为两段互不相关的文本，其间的对仗关系无从表达。
 
 **（2）典故指向是「联 → 出处」而非「词 → 词」。** 史传的用典多在行文中以词语形式出现（典籍名、人物名、故事名）；联话中的用典则常以**整副联集前人诗句**的形式出现，出处冠名与联句并置（如「王勃桃溪柳陌好经过」「太白、右丞」），且冠名的位置有前置、后置、上联联中等四种变体。典籍实体标注只能记录「此处有一本书名」，不能记录「这副联集自该书该卷该句」。本文在规范中另设 `lower_source` 字段专门记录集句出处，正是为了解决这一点。
 
@@ -73,7 +73,7 @@ Yingtong (couplet-talk) is a late-imperial Chinese genre recording couplets with
 
 近年自然语言标注研究已形成较成熟的一致性度量传统。Artstein 与 Poesio 指出，多标注者条件下 Cohen's κ 在许多情形下并不适用，应改用 Krippendorff's α 或 Fleiss' κ[CITATION: Artstein & Poesio, "Inter-Coder Agreement for Computational Linguistics", Computational Linguistics, 2008, 34(4): 555–596]。Passonneau 则就人机协同评测中人评与机评的差异给出测量建议[CITATION: Passonneau, "Inter-annotator agreement for automatic evaluation of machine translation", Computational Linguistics]。在中文古籍方面，人机协同的分词与词性标注规范已有成体系的实践[CITATION: 《上古汉语分词与词性标注加工规范——基于《史记》深加工语料库的标注实践》，《语言文字应用》2023(4)]。
 
-**与本文的差异**：上述工作的一致性度量以**词/句级**标签为对象，且多以「是否达到可接受阈值」为目的。本文把一致性测量的对象下沉到**副联这一结构化单元**（联语边界、上下联切分、出处冠名剥离），并把**联语类型（联类）这一高度偏斜的类别分布**纳入分析：本文语料中「集句」占 20.3%、「联语」占 19.2%，而「会馆联」仅 9 副；此类偏斜会系统性抬高 κ，从而必须同时报告流行度指数与偏倚指数。此外，本文把**度量代码与论文表格的逐格映射**作为交付物的一部分，而非仅报告一个数值。**本文与上述工作的差异在于度量对象、单位定义与可溯源交付物，而非度量公式本身。**
+**与本文的差异**：上述工作的一致性度量以**词/句级**标签为对象，且多以「是否达到可接受阈值」为目的。本文把一致性测量的对象下沉到**副联这一结构化单元**（联语边界、上下联切分、出处冠名剥离），并把**联语类型（联类）这一高度偏斜的类别分布**纳入分析：本文语料中「集句」占 20.3%、「联语」占 19.1%，而「会馆联」仅 9 副；此类偏斜会系统性抬高 κ，从而必须同时报告流行度指数与偏倚指数。此外，本文把**度量代码与论文表格的逐格映射**作为交付物的一部分，而非仅报告一个数值。**本文与上述工作的差异在于度量对象、单位定义与可溯源交付物，而非度量公式本身。**
 
 ### 2.3 标注质量评估方法
 
@@ -161,7 +161,7 @@ Cohen's κ 因校正了随机一致性而优于原始一致率，但其在类别
 
 **联语以「联」为最小单位。** 一副联记为 `C####`（如 `C0002`），其边界由引号内文本的首个全角分号 `；` 切分为上联与下联；引号本身属原文，保留在标记外。
 
-**长联**：长度不限。上联或下联超过 20 字仍算一副联，不拆分。实测中最长者达 50 字（如 `C0030` 一类长寿联）。长联的上下联可能字数不等（本文语料中有 20 副确属不等长），此时**不标记为错误**，而是如实记录 `upper_len` 与 `lower_len`，由研究者自行判断。
+**长联**：长度不限。上联或下联超过 20 字仍算一副联，不拆分。实测中最长者达 50 字（如 `C0030` 一类长寿联）。长联的上下联字数必然相等：初检曾发现 20 副不等长，经逐例人工复核（`docs/AUDIT_上下联字数平衡审计.md`）确认**全部源于切分 / 夹注 / 异文 / 出处 / 脱文等标注问题**，而非原书天然不对仗；修正后 3,016 副全部等长。
 
 **残联**：原文只存半联（缺上联或缺下联）时，仍记为一副联，`upper` 或 `lower` 置空，`text` 保留原文引号内全部内容。此类须在数据集中标记 `is_fragment: true`，以便下游排除。
 
@@ -192,11 +192,13 @@ Cohen's κ 因校正了随机一致性而优于原始一致率，但其在类别
 
 **R6（联语以前置标记 `〖聯〗` 标识，不包裹正文）。** 理由是包裹会阻断联内实体标注（如 `〖@孟昶〗`）。`〖聯〗` 只占一个位置，其后引号内为联语正文。
 
-**R7（出处冠名不属于联句）。** 集句联常把出处与联句并置，须剥离。判定采用**形制自证**而非词典猜测：尝试剥离任一联的首 k 字或末 k 字（k ≤ 10），若剥离后两联等长，且该段形似出处（人名、「X句」缩写、或文献题名），则认定为冠名。实测剥离后 3,000/3,020 副（99.34%）上下联等长，共剥离出 168 副的出处冠名，其中人名形态 146、「X句」缩写 13、文献题名 9。形制自证的优越性在于：冠名有三种形态（诗人名、字号如「元次山」、文献题名如「谢庄武帝册」），逐条列举必然遗漏，而形制只需一条规则。
+**R7（出处冠名不属于联句）。** 集句联常把出处与联句并置，须剥离。判定采用**形制自证**而非词典猜测：尝试剥离任一联的首 k 字或末 k 字（k ≤ 10），若剥离后两联等长，且该段形似出处（人名、「X句」缩写、或文献题名），则认定为冠名。实测剥离后 3,016/3,016 副（100%）上下联等长，共剥离出 171 副的出处冠名。形制自证的优越性在于：冠名有三种形态（诗人名、字号如「元次山」、文献题名如「谢庄武帝册」），逐条列举必然遗漏，而形制只需一条规则。
 
 **R8（编者标记不属于联句）。** 剥离「见上」（指前一条已引的上联）、「一作」「又作」（异文标记），原文保留在 `text` 中，剥离结果记入 `editorial_markers` 字段。**特别注意：「一曰」不是编者标记**——它在「受天地之中，以生一曰水」中是以五行名目成句的正文，误剔会破坏联句。
 
-**R9（末尾句读不计入联句）。** 原文写作「上联；下联。」时，句号属引文而非下联。若不剥离，下联字数凭空多一字，破坏「上下联等字数」的基本形制——实测等长率会从 99.34% 跌至 1.4%。
+**R9（末尾句读不计入联句）。** 原文写作「上联；下联。」时，句号属引文而非下联。若不剥离，下联字数凭空多一字，破坏「上下联等字数」的基本形制——实测等长率会从 100% 大幅下跌。
+
+**R9a（上下联字数平衡作为硬性领域校验）。** 「上下联等长」不只是统计量，而是可执行的**领域校验**：本文对初检中 20 副字数不等的联语逐例人工复核，确认**无一属原书天然不对仗**，全部源于九类可判定的标注问题——边界切错、异文未剥离、夹注混入正文、集句出处未剥离、议论性按语混入、编者标记残迹、底本脱文、衍文、以及叙述文字被误收为联语。复核结论固化为 `data/couplet_corrections.json`（以原文引文为锚点，非位置编号，故上游切分变动时会显式报错而非静默错配），由 `scripts/couplet_corrections.py` 在生成 `couplets.json` 时应用，并由 `scripts/verify_couplet_balance.py` 作为回归闸门逐项校验（等长、顿长序列逐顿一致、复核锚点落位、非联语确已剔除）。复核后：**3,016 副全部等长，顿长序列逐顿一致**；4 副经判定并非联语（议论散文、问答、方志叙述、列举叙述）予以剔除。完整审计日志见 `docs/AUDIT_上下联字数平衡审计.md`，其中归纳的 R1–R16 十六条规则同时记录了**三条被实测证伪的做法**（宽泛的「末尾像出处」判据误伤率 99.8%；用「含冒号」判叙述会误杀 3 副真联；不加「仅在不平衡时启用」的前置条件会误伤工整巧对），作为该领域校验不可简化的一条证据。
 
 **R10（实体边界取「最小完整单位」，但成对出现时取长者）。** 典故名、复合地名作为一个整体标注，不拆字；但当两个候选在同一位置竞争时（如「关帝庙」vs「关帝」），取长者（R2/R4）。
 
@@ -346,7 +348,7 @@ PI = |N11 − N22| / N        （流行度：阳性与阴性的分布失衡）
 BI = |N1. − N.1| / N        （偏倚：两位标注者的边际不一致）
 ```
 
-多类情形下对每一候选类分别计算，并取绝对值最大者作为代表值，同时在明细中给出逐类取值。理由是：κ 在类别分布高度偏斜时会被系统性高估，而联话语料的联类分布正是偏斜的（「集句」20.3%、「联语」19.2%，而「会馆联」仅 9 副）。只报 κ 而不报 PI/BI，等于把一个可能由偏斜造成的虚高数字当作可靠性证据。
+多类情形下对每一候选类分别计算，并取绝对值最大者作为代表值，同时在明细中给出逐类取值。理由是：κ 在类别分布高度偏斜时会被系统性高估，而联话语料的联类分布正是偏斜的（「集句」20.3%、「联语」19.1%，而「会馆联」仅 9 副）。只报 κ 而不报 PI/BI，等于把一个可能由偏斜造成的虚高数字当作可靠性证据。
 
 **估计量名称必须写明。** 代码同时输出 Cohen's κ 与 Scott's Pi（合并两位标注者边际的期望一致度口径）。在两位标注者条件下，这两者与 Fleiss' κ 的 p_e 口径互不相同，数值可以显著不同：在一个已手工核算的算例中，Cohen's κ = 0.25、Scott's Pi = 0.238、Fleiss' κ = 0.0。若不写明估计量，跨研究的 κ 值不可比。
 
@@ -543,12 +545,12 @@ reports/
 | 结构树段落节点 | 2,253 | `data/structure.json`（`kind == "paragraph"`） |
 | 实体标注 | 13,135 处 | `data/entities.json` |
 | 规范名 | 2,979 个 | 同上 |
-| 联语 | 3,020 副 | `data/couplets.json` |
-| 联语正文总字数 | 72,585 | 同上 |
-| 上下联等长者 | 3,000 副（99.34%） | 同上 |
-| 可复原出处冠名者 | 168 副（125 个不同出处） | 同上 |
+| 联语 | 3,016 副 | `data/couplets.json` |
+| 联语正文总字数 | 72,455 | 同上 |
+| 上下联等长者 | 3,016 副（100%） | 同上 |
+| 可复原出处冠名者 | 171 副 | 同上 |
 | 高置信撰者线索 | 91 副 | 同上 |
-| 地点线索 | 1,182 副（383 个不同地点） | 同上 |
+| 地点线索 | 1,181 副（382 个不同地点） | 同上 |
 | 收录书目 | 9 部 | `data/structure.json` |
 | 版本号 | [DATASET_VERSION] | 待首次公开发布时确定 |
 
@@ -565,8 +567,11 @@ reports/
 | `entry` | string | 所属条目 | 高 |
 | `ref` | string | 结构树定位（段落级 Purple Number） | 高 |
 | `type` | enum | 联类：集句／联语／庙联／挽联／春联／寿联／贺联／门联／堂联／巧对／会馆联 | 中（关键词启发式，见 §3.4 一值性说明） |
-| `upper` | string | 上联（已剥离末尾句读、出处冠名、编者标记） | 高（原文切分） |
+| `upper` | string | 上联（已剥离末尾句读、出处冠名、编者标记；经人工复核者见 `review`） | 高（原文切分） |
 | `lower` | string | 下联（同上） | 高 |
+| `upper_raw` / `lower_raw` | string? | 复核**前**的切分结果（仅 16 副复核案例有此字段，供追溯） | 高（原文切分） |
+| `review` | object? | 人工复核结论：`{case, rule, verdict, note}`，见 `docs/AUDIT_上下联字数平衡审计.md` | 高（人工判定） |
+| `upper_source` | string? | 上联出处冠名（仅「联末合并式出处」的 3 副，与 `lower_source` 配对） | 高（形制自证） |
 | `lower_source` | string | 出处冠名（集句联的诗人名／文献名） | 高（形制自证） |
 | `editorial_markers` | list | 被剥离的编者标记 | 高 |
 | `upper_len` / `lower_len` | int | 上下联字数 | 高（计算） |
@@ -602,7 +607,7 @@ reports/
 
 ### 7.3 去重与脱敏
 
-**去重**：完全相同的联文文本出现两次及以上时，保留全部出现记录并以 `duplicate_group` 关联（本文语料中 52 组、52 条冗余记录）。数据集同时提供 `total_couplets`（3,020）与 `unique_couplet_texts`（2,968）两个计数，统计「联语总数」时须指明用哪一个。
+**去重**：完全相同的联文文本出现两次及以上时，保留全部出现记录并以 `duplicate_group` 关联（本文语料中 58 条冗余记录）。数据集同时提供 `total_couplets`（3,016）与 `unique_couplet_texts`（2,958）两个计数，统计「联语总数」时须指明用哪一个。
 
 **脱敏**：本语料为已刊行的清代文献，不含个人隐私信息；「小传」「校注」两处现代整理者文字已在数据中标出（`::: 小传` / `::: 校注` 围栏），以免与梁章钜原文混淆。经核查，语料中不含需要脱敏的现代个人信息。**唯一需要特别标注的是**：本文标注工作本身产生的标注者编号（`annotator: "A"/"B"`）在公开发布时将替换为不可逆的匿名标识，以保护标注者身份。
 
@@ -670,7 +675,7 @@ tiddlywiki/oblique.html                  （11.70 MB，双击即开）
 
 字段映射表把标注层的类型符号翻译为 TiddlyWiki 的标签体系。**18 类实体符号 → 18 个中文类型名**的映射是固定的（`@`→人名、`=`→地点、`;`→官职、`%`→时间、`&`→氏族、`◆`→朝代、`^`→名物、`~`→族群、`•`→器物、`!`→天文、`?`→神祇、`+`→生物、`{`→典籍、`:`→礼仪、`[`→刑法、`_`→思想、`#`→身份、`$`→数量）。
 
-导出器另引入**第 19 类实体「出处」**（`实体/出处/<名>`，共 125 个）：它承载集句联的出处冠名（§3.6 R7 所述的形制自证产物），在标注层中并非独立实体类型，但在知识组织上是与「人名」「典籍」并列的一等对象——「杜甫」作为集句出处者与作为联语评点者是两种不同的知识关系，若混为一谈则无法回答「谁被集得最多」这类问题。故本文将其单列为实体类别，并在其 tiddler 中记录出现次数与「又称」（如「杜甫 → 又称：杜工部」）。
+导出器另引入**第 19 类实体「出处」**（`实体/出处/<名>`，共 128 个）：它承载集句联的出处冠名（§3.6 R7 所述的形制自证产物），在标注层中并非独立实体类型，但在知识组织上是与「人名」「典籍」并列的一等对象——「杜甫」作为集句出处者与作为联语评点者是两种不同的知识关系，若混为一谈则无法回答「谁被集得最多」这类问题。故本文将其单列为实体类别，并在其 tiddler 中记录出现次数与「又称」（如「杜甫 → 又称：杜工部」）。
 
 #### 8.2.2 tid 生成与标题规范
 
@@ -679,7 +684,7 @@ tiddlywiki/oblique.html                  （11.70 MB，双击即开）
 | tiddler 类别 | 标题格式 | 数量 |
 |---|---|---:|
 | 原文条目（段落） | `条目/<Purple Number>` | 2,254 |
-| 单副联语 | `联语/C####` | 3,020 |
+| 单副联语 | `联语/C####` | 3,016 |
 | 规范名实体 | `实体/<类型名>/<规范名>` | 3,108 |
 | 结构节点（书/卷/门类） | `章节/<id>` | 223 |
 | 标签锚点 | `<标签名本身>` | 3,369 |
@@ -765,7 +770,7 @@ TiddlyWiki 的标签胶囊以**标签名本身**去查同名 tiddler，据此判
 | 校验项 | 结果 |
 |---|---|
 | 全部源段落已导出 | ✓ 2,254 → 2,254 |
-| 全部联语已导出 | ✓ 3,020 → 3,020 |
+| 全部联语已导出 | ✓ 3,016 → 3,016 |
 | 条目的实体 tag 与正文标注一致 | ✓ 2,254 个条目全部一致 |
 | 实体标签均有对应 tiddler | ✓ 3,545 个 |
 | 紫色编号目录完整 | ✓ 2,477 个节点，父子标签关系全部正确 |

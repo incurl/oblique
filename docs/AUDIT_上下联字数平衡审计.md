@@ -1733,3 +1733,83 @@ PY
 > 并归纳出 16 条规则（R1–R16），其中 **10 条经全语料实测验证为零误伤**。
 
 
+---
+
+## 6. 落地实施（审计结论已写入语料）
+
+审计结论已固化为**数据层**并贯通全流水线。
+
+### 6.1 实施构件
+
+| 构件 | 路径 | 作用 |
+|---|---|---|
+| **复核表** | `data/couplet_corrections.json` | 20 条人工判定结论，**以原文引文（`text`）为锚点**，不用位置编号 |
+| **应用模块** | `scripts/couplet_corrections.py` | `load_corrections()` / `apply_corrections()`；锚点缺失时**抛错**而非静默跳过 |
+| **生成接入** | `scripts/annotate_yinglian.py` | `generate()` 中调用；**先固化 `_seq` 再剔除**，保证 ID 不漂移 |
+| **回归闸门** | `scripts/verify_couplet_balance.py` | 5 项检查（等长 / 顿长 / 锚点落位 / 非联语已剔 / □ 范围） |
+| **单元测试** | `scripts/test_couplet_corrections.py` | 17 项（含 ID 稳定性、真实语料断言） |
+| **CSV 导出** | `scripts/export_couplets_csv.py` | `data/couplets.csv`，UTF-8 BOM，Excel 直接可读 |
+
+### 6.2 关键工程决策
+
+1. **锚点用原文引文，不用 `C####`**
+   `C####` 由 `enumerate` 生成，若上游切分变动即漂移；引文是稳定内容键。
+   锚点失配时 `apply_corrections()` **抛出 `KeyError`**，
+   强制重新核对审计结论——**不允许静默错配**。
+
+2. **剔除案例后 ID 不漂移**
+   先 `enumerate` 固化 `_seq`，再剔除；`build_couplets_index()` 按 `_seq` 编号。
+   故 4 例剔除后留下 **4 个空号**，其余 3,016 个 ID 与审计文档、tiddler 链接**逐一对应**。
+   （若无此处理，剔除会让后 1,300+ 个联语编号连环偏移，全部失效。）
+
+3. **`□` 是底本既有约定，非本审计引入**
+   源文件已有 70 处 `□`（如 `□□①云内神仙府`）。故闸门只校验
+   **「复核新增的 □ 是否落在声明的脱文案例上」**，不禁止底本自带的 `□`。
+
+4. **`tagged.md` 正文零改动**
+   复核只作用于派生索引 `couplets.json`。`lint_text_integrity.py` 仍报
+   `OK: text integrity verified.`，`〖聯〗` 标记仍为 3,020 处
+   （正文标记数不变，索引条目 3,020 → 3,016）。
+
+### 6.3 落地结果
+
+| 指标 | 实施前 | 实施后 |
+|---|---|---|
+| 联语条目 | 3,020 | **3,016**（4 例非联语剔除） |
+| 上下联等长 | 3,000（99.34%） | **3,016（100%）** |
+| 顿长序列逐顿一致 | 3,000 | **3,016（100%）** |
+| `unequal_length_ids` | 20 条 | **空数组** |
+| 复核留痕 | 无 | 16 例带 `review` + `upper_raw`/`lower_raw` |
+| 出处冠名 | 168 | **171**（+3 例联末合并式，含 `upper_source`） |
+| 联语正文总字数 | 72,585 | 72,455 |
+
+### 6.4 验证命令（全部通过）
+
+```bash
+python3 scripts/annotate_yinglian.py         # review: applied 20 corrections, kept 3,016, excluded 4
+python3 scripts/lint_text_integrity.py       # OK: text integrity verified.
+python3 scripts/verify_couplet_balance.py    # ✓ 全部检查通过（5/5）
+python3 scripts/test_couplet_corrections.py  # Ran 17 tests … OK
+python3 scripts/render_yinglian.py           # docs/index.html
+python3 scripts/export_couplets_csv.py       # data/couplets.csv（3,016 行，100% 等长）
+python3 scripts/export_tiddlywiki.py         # 联语 3,016 → 联语 tiddler 3,016 ✓
+python3 scripts/verify_tiddlywiki.py         # 全部校验通过 ✓
+python3 scripts/build_tiddlywiki.py          # oblique.html（11.70 MB）
+```
+
+### 6.5 同步更新的文档
+
+| 文档 | 更新内容 |
+|---|---|
+| `research/MANUSCRIPT.md` | 3,020→3,016；99.34%→100%；新增 §3.6 **R9a** 领域校验段；字段字典补 `review`/`upper_raw`/`upper_source` |
+| `SPEC_楹联语义标注.md` | 字段表补 4 个新字段；等长率改 100% |
+| `research/TABLES.md` | 联语数、等长数、出处数、地点线索 |
+| `research/schema.yaml` | `corpus_reference` 全量重算（含 `reviewed_*` 三项） |
+| `research/numbers_map.md` | 新增 6 行溯源映射（指向具体字段） |
+| `README.md` | 产物表、统计块、快速开始、脚本目录 |
+| `BOOK_楹联语义标注方法论.md` | 阶段表增「20 例复核后 100%」；Y5c 新增一行 |
+
+> **审计与落地闭环完成**：20 例全部修正，语料 **100% 上下联等长且顿长序列逐顿一致**，
+> 并由回归闸门 + 17 项单元测试持续守护。
+
+
